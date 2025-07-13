@@ -130,7 +130,7 @@ class QuizQuestionResponse(BaseModel):
     expected_response_time: int
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class QuizSessionCreate(BaseModel):
@@ -177,7 +177,7 @@ class QuizResponseResponse(BaseModel):
     timestamp: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class QuizSessionResponse(BaseModel):
@@ -195,7 +195,7 @@ class QuizSessionResponse(BaseModel):
     responses: Optional[List[QuizResponseResponse]] = None
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class QuizSessionSummary(BaseModel):
@@ -208,7 +208,7 @@ class QuizSessionSummary(BaseModel):
     final_mood_score: Optional[float]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class AdaptiveQuizFlow(BaseModel):

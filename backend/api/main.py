@@ -135,9 +135,25 @@ def create_app() -> FastAPI:
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(request: Request, exc: RequestValidationError):
         """Handle request validation errors."""
+        # Convert errors to JSON-serializable format
+        errors = []
+        for error in exc.errors():
+            error_dict = {
+                "type": error.get("type"),
+                "loc": error.get("loc"),
+                "msg": str(error.get("msg", "")),
+                "input": str(error.get("input", "")) if error.get("input") is not None else None
+            }
+            # Handle context information safely
+            if "ctx" in error:
+                ctx = error["ctx"]
+                if isinstance(ctx, dict):
+                    error_dict["ctx"] = {k: str(v) for k, v in ctx.items()}
+            errors.append(error_dict)
+        
         logger.warning(
             "Request validation error",
-            errors=exc.errors(),
+            errors=errors,
             path=request.url.path
         )
         return JSONResponse(
@@ -145,7 +161,7 @@ def create_app() -> FastAPI:
             content={
                 "error": "VALIDATION_ERROR",
                 "message": "Request validation failed",
-                "details": exc.errors()
+                "details": errors
             }
         )
     

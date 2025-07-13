@@ -149,7 +149,7 @@ class PassiveDataResponse(BaseModel):
     processed: bool
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PassiveDataSummary(BaseModel):
@@ -162,7 +162,7 @@ class PassiveDataSummary(BaseModel):
     source: str
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class PassiveDataBulkCreate(BaseModel):

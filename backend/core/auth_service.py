@@ -60,6 +60,27 @@ class AuthService:
         # Hash password
         hashed_password = self._hash_password(user_data.password)
         
+        # Ensure settings has a default value
+        default_settings = {
+            "notifications": {
+                "daily_reminder": True,
+                "weekly_summary": True,
+                "mood_alerts": True,
+                "reminder_time": "09:00"
+            },
+            "privacy": {
+                "data_sharing": False,
+                "anonymous_analytics": True
+            },
+            "ui": {
+                "theme": "auto",
+                "font_size": "medium",
+                "animations": True
+            }
+        }
+        
+        user_settings = user_data.settings.dict() if user_data.settings else default_settings
+        
         # Create new user
         db_user = User(
             name=user_data.name,
@@ -67,7 +88,7 @@ class AuthService:
             password_hash=hashed_password,
             timezone=user_data.timezone,
             language=user_data.language,
-            settings=user_data.settings.dict() if user_data.settings else None
+            settings=user_settings
         )
         
         try:
@@ -85,7 +106,7 @@ class AuthService:
             access_token=access_token,
             token_type="bearer",
             expires_in=self.access_token_expire_minutes * 60,
-            user=UserResponse.from_orm(db_user)
+            user=UserResponse.model_validate(db_user)
         )
     
     def login_user(self, login_data: UserLogin) -> TokenResponse:
@@ -125,7 +146,7 @@ class AuthService:
             access_token=access_token,
             token_type="bearer",
             expires_in=self.access_token_expire_minutes * 60,
-            user=UserResponse.from_orm(user)
+            user=UserResponse.model_validate(user)
         )
     
     def get_current_user(self, token: str) -> User:

@@ -96,7 +96,7 @@ class AIMoodInsightResponse(BaseModel):
     data_sources: List[str]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ConversationCreate(BaseModel):
@@ -131,7 +131,7 @@ class ConversationResponse(BaseModel):
     model_version: Optional[str]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class ChatMessage(BaseModel):

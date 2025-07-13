@@ -59,7 +59,7 @@ async def ingest_data_point(
     """
     try:
         created_point = service.ingest_data_point(user_id, data_point)
-        return PassiveDataResponse.from_orm(created_point)
+        return PassiveDataResponse.model_validate(created_point)
     except ValueError as e:
         raise ValidationException(str(e))
 
@@ -132,7 +132,7 @@ async def get_data_point(
     if not data_point:
         raise NotFoundException("Data point", str(data_point_id))
     
-    return PassiveDataResponse.from_orm(data_point)
+    return PassiveDataResponse.model_validate(data_point)
 
 
 @router.put("/{data_point_id}", response_model=PassiveDataResponse)
@@ -161,7 +161,7 @@ async def update_data_point(
     if not data_point:
         raise NotFoundException("Data point", str(data_point_id))
     
-    return PassiveDataResponse.from_orm(data_point)
+    return PassiveDataResponse.model_validate(data_point)
 
 
 @router.get("/", response_model=List[PassiveDataResponse])
@@ -201,7 +201,7 @@ async def get_data_points(
         offset=offset
     )
     
-    return [PassiveDataResponse.from_orm(point) for point in data_points]
+    return [PassiveDataResponse.model_validate(point) for point in data_points]
 
 
 @router.get("/aggregate/", response_model=List[DataAggregation])
@@ -300,7 +300,7 @@ async def get_unprocessed_data(
         List of unprocessed data points.
     """
     unprocessed_points = service.get_unprocessed_data(limit)
-    return [PassiveDataResponse.from_orm(point) for point in unprocessed_points]
+    return [PassiveDataResponse.model_validate(point) for point in unprocessed_points]
 
 
 async def _process_data_points_async(data_point_ids: List[int], service: PassiveDataService):

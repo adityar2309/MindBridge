@@ -108,7 +108,7 @@ class DailyCheckinResponse(BaseModel):
     social_interaction: Optional[float]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class DailyCheckinSummary(BaseModel):
@@ -121,7 +121,7 @@ class DailyCheckinSummary(BaseModel):
     keywords: List[str]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class MoodTrend(BaseModel):

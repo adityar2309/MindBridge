@@ -134,7 +134,7 @@ async def get_current_user_profile(
     Returns:
         User profile data.
     """
-    return UserResponse.from_orm(current_user)
+    return UserResponse.model_validate(current_user)
 
 
 @router.post("/verify-token")

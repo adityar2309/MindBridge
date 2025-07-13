@@ -58,7 +58,7 @@ async def create_checkin(
     """
     try:
         checkin = service.create_checkin(user_id, checkin_data)
-        return DailyCheckinResponse.from_orm(checkin)
+        return DailyCheckinResponse.model_validate(checkin)
     except ValueError as e:
         if "already has a check-in" in str(e):
             raise ConflictException(str(e))
@@ -90,7 +90,7 @@ async def get_checkin(
     if not checkin:
         raise NotFoundException("Check-in", str(checkin_id))
     
-    return DailyCheckinResponse.from_orm(checkin)
+    return DailyCheckinResponse.model_validate(checkin)
 
 
 @router.put("/{checkin_id}", response_model=DailyCheckinResponse)
@@ -119,7 +119,7 @@ async def update_checkin(
     if not checkin:
         raise NotFoundException("Check-in", str(checkin_id))
     
-    return DailyCheckinResponse.from_orm(checkin)
+    return DailyCheckinResponse.model_validate(checkin)
 
 
 @router.get("/", response_model=List[DailyCheckinResponse])
@@ -142,7 +142,7 @@ async def get_user_checkins(
         List of check-ins.
     """
     checkins = service.get_user_checkins(user_id, limit, offset)
-    return [DailyCheckinResponse.from_orm(checkin) for checkin in checkins]
+    return [DailyCheckinResponse.model_validate(checkin) for checkin in checkins]
 
 
 @router.get("/today/", response_model=Optional[DailyCheckinResponse])
@@ -162,7 +162,7 @@ async def get_todays_checkin(
     """
     checkin = service.get_todays_checkin(user_id)
     if checkin:
-        return DailyCheckinResponse.from_orm(checkin)
+        return DailyCheckinResponse.model_validate(checkin)
     return None
 
 
