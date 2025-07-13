@@ -209,7 +209,7 @@ def register():
             conn.commit()
             
             # Create access token
-            access_token = create_access_token(identity=user_id)
+            access_token = create_access_token(identity=str(user_id))
             
             conn.close()
             
@@ -300,7 +300,7 @@ def login():
             }), 401
         
         # Create access token
-        access_token = create_access_token(identity=user['id'])
+        access_token = create_access_token(identity=str(user['id']))
         
         return jsonify({
             'success': True,
@@ -329,7 +329,7 @@ def get_profile():
         JSON response with user profile information
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -375,7 +375,7 @@ def get_checkins():
         JSON response with checkins data or error message
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -430,7 +430,7 @@ def submit_checkin():
         JSON response with success status and message
     """
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         data = request.get_json()
         
         if not data:
