@@ -36,13 +36,22 @@ class _DashboardPageState extends State<DashboardPage> {
         title: const Text('MindBridge Dashboard'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.analytics),
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'New Check-in',
             onPressed: () {
-              // Navigate to analytics
+              Navigator.pushNamed(context, '/checkin');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.analytics),
+            tooltip: 'Analytics',
+            onPressed: () {
+              Navigator.pushNamed(context, '/analytics');
             },
           ),
           IconButton(
             icon: const Icon(Icons.person),
+            tooltip: 'Profile',
             onPressed: () {
               // Navigate to profile
             },
@@ -66,7 +75,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      context.read<DashboardBloc>().add(DashboardDataRequested());
+                      _loadDashboardData();
                     },
                     child: const Text('Retry'),
                   ),
@@ -124,10 +133,11 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // Quick check-in action
+          Navigator.pushNamed(context, '/checkin');
         },
         icon: const Icon(Icons.add),
-        label: const Text('Quick Check-in'),
+        label: const Text('Check-in'),
+        tooltip: 'Create new daily check-in',
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:responsive_framework/responsive_framework.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 
 import 'core/config/app_config.dart';
 import 'core/theme/app_theme.dart';

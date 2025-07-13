@@ -437,4 +437,6 @@ class CheckinService {
   }
 }
 
-export const checkinService = new CheckinService(); 
+const checkinService = new CheckinService();
+export { checkinService };
+export default checkinService; 

@@ -3,6 +3,110 @@ import 'package:json_annotation/json_annotation.dart';
 part 'user_models.g.dart';
 
 @JsonSerializable()
+class User {
+  @JsonKey(name: 'user_id')
+  final int userId;
+  
+  final String email;
+  
+  @JsonKey(name: 'first_name')
+  final String firstName;
+  
+  @JsonKey(name: 'last_name') 
+  final String lastName;
+  
+  @JsonKey(name: 'date_of_birth')
+  final DateTime? dateOfBirth;
+  
+  final String? timezone;
+  
+  @JsonKey(name: 'created_at')
+  final DateTime createdAt;
+  
+  @JsonKey(name: 'updated_at')
+  final DateTime updatedAt;
+  
+  @JsonKey(name: 'is_active')
+  final bool isActive;
+  
+  @JsonKey(name: 'profile_picture_url')
+  final String? profilePictureUrl;
+
+  const User({
+    required this.userId,
+    required this.email,
+    required this.firstName,
+    required this.lastName,
+    this.dateOfBirth,
+    this.timezone,
+    required this.createdAt,
+    required this.updatedAt,
+    this.isActive = true,
+    this.profilePictureUrl,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
+  Map<String, dynamic> toJson() => _$UserToJson(this);
+
+  String get fullName => '$firstName $lastName';
+  
+  User copyWith({
+    int? userId,
+    String? email,
+    String? firstName,
+    String? lastName,
+    DateTime? dateOfBirth,
+    String? timezone,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? isActive,
+    String? profilePictureUrl,
+  }) {
+    return User(
+      userId: userId ?? this.userId,
+      email: email ?? this.email,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
+      timezone: timezone ?? this.timezone,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isActive: isActive ?? this.isActive,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
+    );
+  }
+}
+
+@JsonSerializable()
+class UserCreate {
+  final String email;
+  final String password;
+  
+  @JsonKey(name: 'first_name')
+  final String firstName;
+  
+  @JsonKey(name: 'last_name')
+  final String lastName;
+  
+  @JsonKey(name: 'date_of_birth')
+  final DateTime? dateOfBirth;
+  
+  final String? timezone;
+
+  const UserCreate({
+    required this.email,
+    required this.password,
+    required this.firstName,
+    required this.lastName,
+    this.dateOfBirth,
+    this.timezone,
+  });
+
+  factory UserCreate.fromJson(Map<String, dynamic> json) => _$UserCreateFromJson(json);
+  Map<String, dynamic> toJson() => _$UserCreateToJson(this);
+}
+
+@JsonSerializable()
 class UserLogin {
   final String email;
   final String password;
@@ -12,110 +116,8 @@ class UserLogin {
     required this.password,
   });
 
-  factory UserLogin.fromJson(Map<String, dynamic> json) =>
-      _$UserLoginFromJson(json);
-
+  factory UserLogin.fromJson(Map<String, dynamic> json) => _$UserLoginFromJson(json);
   Map<String, dynamic> toJson() => _$UserLoginToJson(this);
-}
-
-@JsonSerializable()
-class UserCreate {
-  final String name;
-  final String email;
-  final String password;
-  final String timezone;
-  final String language;
-  final UserSettings? settings;
-
-  const UserCreate({
-    required this.name,
-    required this.email,
-    required this.password,
-    this.timezone = 'UTC',
-    this.language = 'en',
-    this.settings,
-  });
-
-  factory UserCreate.fromJson(Map<String, dynamic> json) =>
-      _$UserCreateFromJson(json);
-
-  Map<String, dynamic> toJson() => _$UserCreateToJson(this);
-}
-
-@JsonSerializable()
-class UserSettings {
-  final Map<String, dynamic> notifications;
-  final Map<String, dynamic> privacy;
-  final Map<String, dynamic> ui;
-
-  const UserSettings({
-    required this.notifications,
-    required this.privacy,
-    required this.ui,
-  });
-
-  factory UserSettings.fromJson(Map<String, dynamic> json) =>
-      _$UserSettingsFromJson(json);
-
-  Map<String, dynamic> toJson() => _$UserSettingsToJson(this);
-
-  static UserSettings get defaultSettings => const UserSettings(
-    notifications: {
-      'daily_reminder': true,
-      'weekly_summary': true,
-      'mood_alerts': true,
-      'reminder_time': '09:00',
-    },
-    privacy: {
-      'data_sharing': false,
-      'anonymous_analytics': true,
-    },
-    ui: {
-      'theme': 'auto',
-      'font_size': 'medium',
-      'animations': true,
-    },
-  );
-}
-
-@JsonSerializable()
-class UserResponse {
-  @JsonKey(name: 'user_id')
-  final int userId;
-  
-  final String name;
-  final String email;
-  
-  @JsonKey(name: 'registration_date')
-  final DateTime registrationDate;
-  
-  @JsonKey(name: 'is_active')
-  final bool isActive;
-  
-  final Map<String, dynamic> settings;
-  
-  @JsonKey(name: 'last_login')
-  final DateTime? lastLogin;
-  
-  final String timezone;
-  final String language;
-
-  const UserResponse({
-    required this.userId,
-    required this.name,
-    required this.email,
-    required this.registrationDate,
-    required this.isActive,
-    required this.settings,
-    this.lastLogin,
-    required this.timezone,
-    required this.language,
-  });
-
-  factory UserResponse.fromJson(Map<String, dynamic> json) =>
-      _$UserResponseFromJson(json);
-
-  Map<String, dynamic> toJson() => _$UserResponseToJson(this);
 }
 
 @JsonSerializable()
@@ -123,80 +125,55 @@ class TokenResponse {
   @JsonKey(name: 'access_token')
   final String accessToken;
   
+  @JsonKey(name: 'refresh_token')
+  final String? refreshToken;
+  
   @JsonKey(name: 'token_type')
   final String tokenType;
   
   @JsonKey(name: 'expires_in')
-  final int expiresIn;
+  final int? expiresIn;
   
-  @JsonKey(name: 'refresh_token')
-  final String? refreshToken;
-  
-  final UserResponse user;
+  final User user;
 
   const TokenResponse({
     required this.accessToken,
-    this.tokenType = 'bearer',
-    required this.expiresIn,
     this.refreshToken,
+    this.tokenType = 'Bearer',
+    this.expiresIn,
     required this.user,
   });
 
-  factory TokenResponse.fromJson(Map<String, dynamic> json) =>
-      _$TokenResponseFromJson(json);
-
+  factory TokenResponse.fromJson(Map<String, dynamic> json) => _$TokenResponseFromJson(json);
   Map<String, dynamic> toJson() => _$TokenResponseToJson(this);
 }
 
 @JsonSerializable()
-class RefreshTokenRequest {
-  @JsonKey(name: 'refresh_token')
-  final String refreshToken;
-
-  const RefreshTokenRequest({
-    required this.refreshToken,
-  });
-
-  factory RefreshTokenRequest.fromJson(Map<String, dynamic> json) =>
-      _$RefreshTokenRequestFromJson(json);
-
-  Map<String, dynamic> toJson() => _$RefreshTokenRequestToJson(this);
-}
-
-@JsonSerializable()
-class ForgotPasswordRequest {
-  final String email;
-
-  const ForgotPasswordRequest({
-    required this.email,
-  });
-
-  factory ForgotPasswordRequest.fromJson(Map<String, dynamic> json) =>
-      _$ForgotPasswordRequestFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ForgotPasswordRequestToJson(this);
-}
-
-@JsonSerializable()
-class ResetPasswordRequest {
-  final String token;
+class UserUpdate {
+  @JsonKey(name: 'first_name')
+  final String? firstName;
   
-  @JsonKey(name: 'new_password')
-  final String newPassword;
+  @JsonKey(name: 'last_name')
+  final String? lastName;
   
-  @JsonKey(name: 'confirm_password')
-  final String confirmPassword;
+  @JsonKey(name: 'date_of_birth')
+  final DateTime? dateOfBirth;
+  
+  final String? timezone;
+  
+  @JsonKey(name: 'profile_picture_url')
+  final String? profilePictureUrl;
 
-  const ResetPasswordRequest({
-    required this.token,
-    required this.newPassword,
-    required this.confirmPassword,
+  const UserUpdate({
+    this.firstName,
+    this.lastName,
+    this.dateOfBirth,
+    this.timezone,
+    this.profilePictureUrl,
   });
 
-  factory ResetPasswordRequest.fromJson(Map<String, dynamic> json) =>
-      _$ResetPasswordRequestFromJson(json);
-
-  Map<String, dynamic> toJson() => _$ResetPasswordRequestToJson(this);
+  factory UserUpdate.fromJson(Map<String, dynamic> json) => _$UserUpdateFromJson(json);
+  Map<String, dynamic> toJson() => _$UserUpdateToJson(this);
 }
 
 @JsonSerializable()
@@ -206,51 +183,92 @@ class PasswordChange {
   
   @JsonKey(name: 'new_password')
   final String newPassword;
-  
-  @JsonKey(name: 'confirm_password')
-  final String confirmPassword;
 
   const PasswordChange({
     required this.currentPassword,
     required this.newPassword,
-    required this.confirmPassword,
   });
 
-  factory PasswordChange.fromJson(Map<String, dynamic> json) =>
-      _$PasswordChangeFromJson(json);
-
+  factory PasswordChange.fromJson(Map<String, dynamic> json) => _$PasswordChangeFromJson(json);
   Map<String, dynamic> toJson() => _$PasswordChangeToJson(this);
 }
 
-// Generic API response wrapper - removed JsonSerializable due to type parameter issues
-class ApiResponse<T> {
-  final bool success;
-  final String? message;
-  final T? data;
-  final String? error;
+@JsonSerializable()
+class PasswordReset {
+  final String email;
 
-  const ApiResponse({
-    required this.success,
-    this.message,
-    this.data,
-    this.error,
+  const PasswordReset({
+    required this.email,
   });
 
-  factory ApiResponse.fromJson(Map<String, dynamic> json, T Function(Object? json) fromJsonT) {
-    return ApiResponse<T>(
-      success: json['success'] as bool,
-      message: json['message'] as String?,
-      data: json['data'] != null ? fromJsonT(json['data']) : null,
-      error: json['error'] as String?,
-    );
-  }
+  factory PasswordReset.fromJson(Map<String, dynamic> json) => _$PasswordResetFromJson(json);
+  Map<String, dynamic> toJson() => _$PasswordResetToJson(this);
+}
 
-  Map<String, dynamic> toJson(Object? Function(T value) toJsonT) {
-    return {
-      'success': success,
-      'message': message,
-      'data': data != null ? toJsonT(data as T) : null,
-      'error': error,
-    };
+@JsonSerializable()
+class PasswordResetConfirm {
+  final String token;
+  
+  @JsonKey(name: 'new_password')
+  final String newPassword;
+
+  const PasswordResetConfirm({
+    required this.token,
+    required this.newPassword,
+  });
+
+  factory PasswordResetConfirm.fromJson(Map<String, dynamic> json) => _$PasswordResetConfirmFromJson(json);
+  Map<String, dynamic> toJson() => _$PasswordResetConfirmToJson(this);
+}
+
+// User preferences and settings
+@JsonSerializable()
+class UserPreferences {
+  @JsonKey(name: 'user_id')
+  final int userId;
+  
+  @JsonKey(name: 'theme_mode')
+  final String themeMode; // 'light', 'dark', 'system'
+  
+  @JsonKey(name: 'notification_enabled')
+  final bool notificationEnabled;
+  
+  @JsonKey(name: 'checkin_reminder_time')
+  final String? checkinReminderTime; // HH:MM format
+  
+  @JsonKey(name: 'data_sharing_enabled')
+  final bool dataSharingEnabled;
+  
+  @JsonKey(name: 'analytics_enabled')
+  final bool analyticsEnabled;
+
+  const UserPreferences({
+    required this.userId,
+    this.themeMode = 'system',
+    this.notificationEnabled = true,
+    this.checkinReminderTime,
+    this.dataSharingEnabled = false,
+    this.analyticsEnabled = true,
+  });
+
+  factory UserPreferences.fromJson(Map<String, dynamic> json) => _$UserPreferencesFromJson(json);
+  Map<String, dynamic> toJson() => _$UserPreferencesToJson(this);
+
+  UserPreferences copyWith({
+    int? userId,
+    String? themeMode,
+    bool? notificationEnabled,
+    String? checkinReminderTime,
+    bool? dataSharingEnabled,
+    bool? analyticsEnabled,
+  }) {
+    return UserPreferences(
+      userId: userId ?? this.userId,
+      themeMode: themeMode ?? this.themeMode,
+      notificationEnabled: notificationEnabled ?? this.notificationEnabled,
+      checkinReminderTime: checkinReminderTime ?? this.checkinReminderTime,
+      dataSharingEnabled: dataSharingEnabled ?? this.dataSharingEnabled,
+      analyticsEnabled: analyticsEnabled ?? this.analyticsEnabled,
+    );
   }
 } 

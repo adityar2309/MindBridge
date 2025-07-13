@@ -2,18 +2,48 @@ import 'package:flutter/material.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
+import '../../features/dashboard/presentation/pages/checkin_page.dart';
 import '../../features/analytics/presentation/pages/analytics_page.dart';
+import 'auth_guard.dart';
 
 class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
-    switch (settings.name) {
+    final routeName = settings.name ?? '/';
+    
+    switch (routeName) {
       case '/':
       case '/dashboard':
-        return MaterialPageRoute(builder: (_) => const DashboardPage());
+        return MaterialPageRoute(
+          builder: (context) => AuthGuard.getRouteWidget(
+            context,
+            routeName,
+            () => const DashboardPage(),
+          ),
+        );
       case '/login':
-        return MaterialPageRoute(builder: (_) => const LoginPage());
+        return MaterialPageRoute(
+          builder: (context) => AuthGuard.getRouteWidget(
+            context,
+            routeName,
+            () => const LoginPage(),
+          ),
+        );
+      case '/checkin':
+        return MaterialPageRoute(
+          builder: (context) => AuthGuard.getRouteWidget(
+            context,
+            routeName,
+            () => const CheckinPage(),
+          ),
+        );
       case '/analytics':
-        return MaterialPageRoute(builder: (_) => const AnalyticsPage());
+        return MaterialPageRoute(
+          builder: (context) => AuthGuard.getRouteWidget(
+            context,
+            routeName,
+            () => const AnalyticsPage(),
+          ),
+        );
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

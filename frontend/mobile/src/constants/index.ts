@@ -1,7 +1,7 @@
 // API Configuration
 export const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:8000/api/v1' 
-  : 'https://api.mindbridge.app/v1';
+  ? 'http://localhost:8000' 
+  : 'https://api.mindbridge.app';
 
 export const API_ENDPOINTS = {
   auth: {
@@ -12,18 +12,33 @@ export const API_ENDPOINTS = {
     profile: '/auth/profile',
   },
   checkins: {
-    create: '/checkins',
-    list: '/checkins',
-    analytics: '/checkins/analytics',
-    streak: '/checkins/streak',
+    create: '/api/v1/checkins',
+    list: '/api/v1/checkins',
+    analytics: '/api/v1/checkins/analytics',
+    streak: '/api/v1/checkins/streak',
+    trends: '/api/v1/checkins/trends',
+    today: '/api/v1/checkins/today',
   },
   passiveData: {
-    upload: '/passive-data',
-    list: '/passive-data',
+    create: '/api/v1/passive-data',
+    list: '/api/v1/passive-data',
+    bulk: '/api/v1/passive-data/bulk',
+    aggregate: '/api/v1/passive-data/aggregate',
+    healthMetrics: '/api/v1/passive-data/health-metrics',
+  },
+  health: {
+    status: '/health',
+    liveness: '/health/liveness', 
+    readiness: '/health/readiness',
+    detailed: '/health/detailed',
   },
   ai: {
     insights: '/ai/insights',
     chat: '/ai/chat',
+  },
+  metrics: {
+    prometheus: '/metrics',
+    health: '/metrics/health',
   },
 } as const;
 

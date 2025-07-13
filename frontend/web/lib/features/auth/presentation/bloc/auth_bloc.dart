@@ -22,7 +22,7 @@ abstract class AuthState {}
 class AuthInitial extends AuthState {}
 class AuthLoading extends AuthState {}
 class AuthAuthenticated extends AuthState {
-  final UserResponse user;
+  final User user;
   final String accessToken;
   AuthAuthenticated(this.user, this.accessToken);
 }
@@ -52,15 +52,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (isHealthy) {
             // For now, create a demo user since we don't have a "me" endpoint
             // In a real app, you'd fetch the current user profile
-            final demoUser = UserResponse(
+            final demoUser = User(
               userId: 1,
-              name: 'Demo User',
+              firstName: 'Demo',
+              lastName: 'User',
               email: 'demo@mindbridge.app',
-              registrationDate: DateTime.now(),
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
               isActive: true,
-              settings: UserSettings.defaultSettings.toJson(),
               timezone: 'UTC',
-              language: 'en',
             );
             emit(AuthAuthenticated(demoUser, storedToken));
             return;
