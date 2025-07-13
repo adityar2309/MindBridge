@@ -5,6 +5,7 @@
  * It includes all core features: daily check-ins, mood quiz, AI copilot, and chat interface.
  * 
  * Features:
+ * - User authentication with JWT tokens
  * - Daily mood and stress level check-ins
  * - AI-generated mood quiz with insights
  * - Contextual AI copilot for grounding exercises
@@ -26,13 +27,32 @@ import {
   TrendingUp,
   AlertTriangle,
   CheckCircle,
-  Loader2
+  Loader2,
+  User,
+  LogOut,
+  LogIn,
+  UserPlus,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 // API base URL - adjust for your backend
 const API_BASE_URL = 'http://localhost:5000/api';
 
 function App() {
+  // Authentication state
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('mindbridge_token'));
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authMode, setAuthMode] = useState('login'); // 'login' or 'register'
+  const [authData, setAuthData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+
   // Main application state
   const [currentPage, setCurrentPage] = useState('home');
   const [currentMood, setCurrentMood] = useState('neutral');
@@ -62,10 +82,138 @@ function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
 
-  // Load recent check-ins on component mount
+  // Check authentication on component mount
   useEffect(() => {
-    loadRecentCheckins();
+    checkAuth();
   }, []);
+
+  // Load recent check-ins when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadRecentCheckins();
+    }
+  }, [isAuthenticated]);
+
+  // Check if user is authenticated
+  const checkAuth = async () => {
+    const storedToken = localStorage.getItem('mindbridge_token');
+    if (storedToken) {
+      setToken(storedToken);
+      try {
+        const response = await apiCall('/auth/profile', {
+          headers: { Authorization: `Bearer ${storedToken}` }
+        });
+        if (response.success) {
+          setUser(response.user);
+          setIsAuthenticated(true);
+        } else {
+          // Token is invalid, remove it
+          localStorage.removeItem('mindbridge_token');
+          setToken(null);
+        }
+      } catch (error) {
+        // Token is invalid, remove it
+        localStorage.removeItem('mindbridge_token');
+        setToken(null);
+      }
+    }
+  };
+
+  // Login function
+  const login = async () => {
+    if (!authData.username || !authData.password) {
+      setError('Username and password are required');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiCall('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: authData.username,
+          password: authData.password
+        })
+      });
+
+      if (response.success) {
+        setToken(response.access_token);
+        setUser(response.user);
+        setIsAuthenticated(true);
+        localStorage.setItem('mindbridge_token', response.access_token);
+        setAuthData({ username: '', email: '', password: '', confirmPassword: '' });
+        setSuccess('Login successful!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(response.error || 'Login failed');
+      }
+    } catch (error) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Register function
+  const register = async () => {
+    if (!authData.username || !authData.email || !authData.password) {
+      setError('All fields are required');
+      return;
+    }
+
+    if (authData.password !== authData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (authData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiCall('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: authData.username,
+          email: authData.email,
+          password: authData.password
+        })
+      });
+
+      if (response.success) {
+        setToken(response.access_token);
+        setUser(response.user);
+        setIsAuthenticated(true);
+        localStorage.setItem('mindbridge_token', response.access_token);
+        setAuthData({ username: '', email: '', password: '', confirmPassword: '' });
+        setSuccess('Registration successful! Welcome to MindBridge!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(response.error || 'Registration failed');
+      }
+    } catch (error) {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Logout function
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('mindbridge_token');
+    setCurrentPage('home');
+    setSuccess('Logged out successfully!');
+    setTimeout(() => setSuccess(''), 3000);
+  };
 
   // Determine adaptive UI colors based on current mood
   const getMoodColors = () => {
@@ -110,18 +258,30 @@ function App() {
 
   const colors = getMoodColors();
 
-  // API helper functions
+  // API helper functions with JWT support
   const apiCall = async (endpoint, options = {}) => {
     try {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+
+      // Add JWT token if available and not already provided
+      if (token && !headers.Authorization) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers
-        },
+        headers,
         ...options
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired or invalid, logout
+          logout();
+          throw new Error('Session expired. Please login again.');
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -335,6 +495,127 @@ function App() {
     { id: 'chat', label: 'Chat', icon: MessageCircle }
   ];
 
+  // Render authentication page
+  const renderAuth = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">MindBridge</h1>
+        <p className="text-gray-600">Your personal mood and mental health companion</p>
+      </div>
+
+      {renderMessages()}
+
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="flex justify-center mb-6">
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setAuthMode('login')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                authMode === 'login'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Login
+            </button>
+            <button
+              onClick={() => setAuthMode('register')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                authMode === 'register'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Register
+            </button>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Username
+            </label>
+            <input
+              type="text"
+              value={authData.username}
+              onChange={(e) => setAuthData({...authData, username: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Enter your username"
+            />
+          </div>
+
+          {authMode === 'register' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={authData.email}
+                onChange={(e) => setAuthData({...authData, email: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter your email"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={authData.password}
+                onChange={(e) => setAuthData({...authData, password: e.target.value})}
+                className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter your password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          </div>
+
+          {authMode === 'register' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirm Password
+              </label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={authData.confirmPassword}
+                onChange={(e) => setAuthData({...authData, confirmPassword: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Confirm your password"
+              />
+            </div>
+          )}
+
+          <button
+            onClick={authMode === 'login' ? login : register}
+            disabled={loading}
+            className={`w-full ${colors.primary} text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center`}
+          >
+            {loading ? (
+              <Loader2 className="animate-spin mr-2" size={20} />
+            ) : authMode === 'login' ? (
+              <LogIn className="mr-2" size={20} />
+            ) : (
+              <UserPlus className="mr-2" size={20} />
+            )}
+            {loading ? 'Please wait...' : authMode === 'login' ? 'Login' : 'Register'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   // Render navigation
   const renderNavigation = () => (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50">
@@ -363,6 +644,23 @@ function App() {
         })}
       </div>
     </nav>
+  );
+
+  // Render header with user info and logout
+  const renderHeader = () => (
+    <div className="flex justify-between items-center mb-6">
+      <div className="flex items-center space-x-2">
+        <User size={20} className="text-gray-600" />
+        <span className="text-gray-700 font-medium">Welcome, {user?.username}!</span>
+      </div>
+      <button
+        onClick={logout}
+        className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition-colors"
+      >
+        <LogOut size={16} />
+        <span className="text-sm">Logout</span>
+      </button>
+    </div>
   );
 
   // Render message displays
@@ -785,14 +1083,21 @@ function App() {
   return (
     <div className={`min-h-screen ${colors.background} mood-transition pb-20`}>
       <div className="max-w-md mx-auto p-4">
-        {currentPage === 'home' && renderHome()}
-        {currentPage === 'checkin' && renderCheckin()}
-        {currentPage === 'quiz' && renderQuiz()}
-        {currentPage === 'copilot' && renderCopilot()}
-        {currentPage === 'chat' && renderChat()}
+        {isAuthenticated ? (
+          <>
+            {renderHeader()}
+            {currentPage === 'home' && renderHome()}
+            {currentPage === 'checkin' && renderCheckin()}
+            {currentPage === 'quiz' && renderQuiz()}
+            {currentPage === 'copilot' && renderCopilot()}
+            {currentPage === 'chat' && renderChat()}
+          </>
+        ) : (
+          renderAuth()
+        )}
       </div>
       
-      {renderNavigation()}
+      {isAuthenticated && renderNavigation()}
     </div>
   );
 }
