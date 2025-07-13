@@ -66,6 +66,87 @@ async def create_checkin(
             raise ValidationException(str(e))
 
 
+@router.get("/analytics/", response_model=MoodAnalytics)
+async def get_mood_analytics(
+    user_id: int = Query(..., description="User ID"),
+    period: str = Query("monthly", pattern="^(daily|weekly|monthly)$", description="Analysis period"),
+    service: CheckinService = Depends(get_checkin_service)
+):
+    """
+    Get mood analytics for a user.
+    
+    Args:
+        user_id: User ID from query parameter.
+        period: Analysis period (daily, weekly, monthly).
+        service: CheckinService dependency.
+        
+    Returns:
+        Mood analytics data.
+    """
+    return service.get_mood_analytics(user_id, period)
+
+
+@router.get("/trends/", response_model=List[MoodTrend])
+async def get_mood_trends(
+    user_id: int = Query(..., description="User ID"),
+    days: int = Query(30, ge=7, le=365, description="Number of days to analyze"),
+    service: CheckinService = Depends(get_checkin_service)
+):
+    """
+    Get mood trends over a specified period.
+    
+    Args:
+        user_id: User ID from query parameter.
+        days: Number of days to analyze.
+        service: CheckinService dependency.
+        
+    Returns:
+        List of mood trend data points.
+    """
+    analytics = service.get_mood_analytics(user_id, "daily")
+    # Extract trend data from analytics
+    return analytics.trends if hasattr(analytics, 'trends') else []
+
+
+@router.get("/today/", response_model=Optional[DailyCheckinResponse])
+async def get_todays_checkin(
+    user_id: int = Query(..., description="User ID"),
+    service: CheckinService = Depends(get_checkin_service)
+):
+    """
+    Get today's check-in for a user.
+    
+    Args:
+        user_id: User ID from query parameter.
+        service: CheckinService dependency.
+        
+    Returns:
+        Today's check-in data or None if not found.
+    """
+    checkin = service.get_todays_checkin(user_id)
+    if checkin:
+        return DailyCheckinResponse.model_validate(checkin)
+    return None
+
+
+@router.get("/streak/", response_model=CheckinStreak)
+async def get_checkin_streak(
+    user_id: int = Query(..., description="User ID"),
+    service: CheckinService = Depends(get_checkin_service)
+):
+    """
+    Get user's check-in streak information.
+    
+    Args:
+        user_id: User ID from query parameter.
+        service: CheckinService dependency.
+        
+    Returns:
+        Check-in streak data.
+    """
+    return service.get_checkin_streak(user_id)
+
+
 @router.get("/{checkin_id}", response_model=DailyCheckinResponse)
 async def get_checkin(
     checkin_id: int = Path(..., description="Check-in ID"),
@@ -145,82 +226,4 @@ async def get_user_checkins(
     return [DailyCheckinResponse.model_validate(checkin) for checkin in checkins]
 
 
-@router.get("/today/", response_model=Optional[DailyCheckinResponse])
-async def get_todays_checkin(
-    user_id: int = Query(..., description="User ID"),
-    service: CheckinService = Depends(get_checkin_service)
-):
-    """
-    Get today's check-in for a user.
-    
-    Args:
-        user_id: User ID from query parameter.
-        service: CheckinService dependency.
-        
-    Returns:
-        Today's check-in data or None if not found.
-    """
-    checkin = service.get_todays_checkin(user_id)
-    if checkin:
-        return DailyCheckinResponse.model_validate(checkin)
-    return None
-
-
-@router.get("/streak/", response_model=CheckinStreak)
-async def get_checkin_streak(
-    user_id: int = Query(..., description="User ID"),
-    service: CheckinService = Depends(get_checkin_service)
-):
-    """
-    Get user's check-in streak information.
-    
-    Args:
-        user_id: User ID from query parameter.
-        service: CheckinService dependency.
-        
-    Returns:
-        Check-in streak data.
-    """
-    return service.get_checkin_streak(user_id)
-
-
-@router.get("/analytics/", response_model=MoodAnalytics)
-async def get_mood_analytics(
-    user_id: int = Query(..., description="User ID"),
-    period: str = Query("monthly", pattern="^(daily|weekly|monthly)$", description="Analysis period"),
-    service: CheckinService = Depends(get_checkin_service)
-):
-    """
-    Get mood analytics for a user.
-    
-    Args:
-        user_id: User ID from query parameter.
-        period: Analysis period (daily, weekly, monthly).
-        service: CheckinService dependency.
-        
-    Returns:
-        Mood analytics data.
-    """
-    return service.get_mood_analytics(user_id, period)
-
-
-@router.get("/trends/", response_model=List[MoodTrend])
-async def get_mood_trends(
-    user_id: int = Query(..., description="User ID"),
-    days: int = Query(30, ge=7, le=365, description="Number of days to analyze"),
-    service: CheckinService = Depends(get_checkin_service)
-):
-    """
-    Get mood trends over a specified period.
-    
-    Args:
-        user_id: User ID from query parameter.
-        days: Number of days to analyze.
-        service: CheckinService dependency.
-        
-    Returns:
-        List of mood trend data points.
-    """
-    analytics = service.get_mood_analytics(user_id, "daily")
-    # Extract trend data from analytics
-    return analytics.trends if hasattr(analytics, 'trends') else [] 
+ 

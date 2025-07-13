@@ -11,6 +11,39 @@ MindBridge is designed to help users track their mental health through:
 - **Conversational Support**: AI assistant for mental health guidance
 - **Adaptive Assessments**: Smart questionnaires that adapt to user responses
 
+## 🚀 Quick Test (30 seconds)
+
+Get the backend running in 30 seconds to test the fixed dashboard API:
+
+### Option A: Use the Quick Start Script (Easiest!)
+```bash
+# Clone and run the start script
+git clone https://github.com/your-org/mindbridge.git
+cd mindbridge
+
+# For Linux/Mac:
+chmod +x start.sh
+./start.sh
+
+# For Windows:
+start.bat
+```
+
+### Option B: Manual Setup
+```bash
+# Clone and start manually
+git clone https://github.com/your-org/mindbridge.git
+cd mindbridge
+docker-compose up -d
+
+# Test the fixed endpoints (wait ~30 seconds for startup)
+curl "http://localhost:8000/health"
+curl "http://localhost:8000/api/v1/checkins/analytics?user_id=1&period=weekly"
+curl "http://localhost:8000/docs"  # Interactive API documentation
+```
+
+✅ **Fixed Issue**: Dashboard validation error resolved - the `/analytics/` endpoint now works correctly!
+
 ## 🏗️ Architecture
 
 ### Core Components
@@ -62,13 +95,144 @@ MindBridge is designed to help users track their mental health through:
 
 ### Prerequisites
 
-- Python 3.11+
-- PostgreSQL 13+
-- Redis 6+
-- Node.js 18+ (for frontend)
-- Docker & Docker Compose
+- **Docker** and **Docker Compose** (Recommended)
+- OR: Python 3.11+, PostgreSQL 13+, Redis 6+, Node.js 18+
 
-### Installation
+### Option 1: Docker Compose (Recommended) 🐳
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-org/mindbridge.git
+   cd mindbridge
+   ```
+
+2. **Start all services with Docker Compose**
+   ```bash
+   # Start all services (backend, database, redis, monitoring)
+   docker-compose up -d
+   
+   # View logs
+   docker-compose logs -f
+   
+   # Stop all services
+   docker-compose down
+   ```
+
+3. **Access the services**
+   - **Backend API**: http://localhost:8000
+   - **API Documentation**: http://localhost:8000/docs
+   - **Grafana Monitoring**: http://localhost:3001 (admin/admin)
+   - **Prometheus Metrics**: http://localhost:9090
+   - **PostgreSQL**: localhost:5432
+   - **Redis**: localhost:6379
+
+4. **Run database migrations (if needed)**
+   ```bash
+   # The database schema is automatically initialized
+   # But you can manually run migrations if needed:
+   docker-compose exec backend alembic upgrade head
+   ```
+
+### 🛠️ Docker Development Workflow
+
+#### Common Commands
+
+```bash
+# Start all services in background
+docker-compose up -d
+
+# Start specific services
+docker-compose up -d postgres redis
+docker-compose up backend
+
+# View logs for all services
+docker-compose logs -f
+
+# View logs for specific service
+docker-compose logs -f backend
+
+# Restart a service
+docker-compose restart backend
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (⚠️ deletes all data)
+docker-compose down -v
+
+# Rebuild containers
+docker-compose up --build
+
+# Execute commands in running containers
+docker-compose exec backend bash
+docker-compose exec postgres psql -U postgres -d mindbridge_dev
+```
+
+#### Development Tasks
+
+```bash
+# Run backend tests
+docker-compose exec backend python -m pytest tests/ -v
+
+# Run database migrations
+docker-compose exec backend alembic upgrade head
+
+# Create new migration
+docker-compose exec backend alembic revision --autogenerate -m "description"
+
+# Access Django shell (if using Django)
+docker-compose exec backend python manage.py shell
+
+# View real-time backend logs
+docker-compose logs -f backend
+
+# Reset database (⚠️ deletes all data)
+docker-compose down
+docker volume rm mindbridge_postgres_data
+docker-compose up -d
+```
+
+#### Environment Configuration
+
+Create a `.env` file in the project root to override default settings:
+
+```bash
+# .env file
+DATABASE_URL=postgresql://postgres:mypassword@postgres:5432/mindbridge_dev
+REDIS_URL=redis://redis:6379/0
+DEBUG=true
+ENVIRONMENT=development
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080,http://localhost:5173
+
+# Optional: Override default ports
+BACKEND_PORT=8001
+POSTGRES_PORT=5433
+REDIS_PORT=6380
+GRAFANA_PORT=3002
+```
+
+#### Troubleshooting
+
+```bash
+# Check service status
+docker-compose ps
+
+# Check resource usage
+docker stats
+
+# View detailed service information
+docker-compose logs backend
+
+# Clean up unused Docker resources
+docker system prune
+
+# Rebuild everything from scratch
+docker-compose down -v
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+### Option 2: Manual Development Setup
 
 1. **Clone the repository**
    ```bash
@@ -79,27 +243,32 @@ MindBridge is designed to help users track their mental health through:
 2. **Set up the database**
    ```bash
    # Create PostgreSQL database
-   createdb mindbridge
+   createdb mindbridge_dev
    
    # Run database migrations
    cd backend
-   psql -d mindbridge -f database/schema.sql
+   psql -d mindbridge_dev -f database/schema.sql
    ```
 
 3. **Install backend dependencies**
    ```bash
+   cd backend
    pip install -r requirements.txt
    ```
 
 4. **Configure environment variables**
    ```bash
-   cp .env.example .env
-   # Edit .env with your database credentials
+   # Set environment variables (or create .env file)
+   export DATABASE_URL="postgresql://postgres:password@localhost:5432/mindbridge_dev"
+   export REDIS_URL="redis://localhost:6379/0"
+   export ENVIRONMENT="development"
+   export DEBUG="true"
    ```
 
 5. **Start the development server**
    ```bash
-   uvicorn main:app --reload --port 8000
+   cd backend
+   python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
 ## 📊 API Documentation
@@ -109,7 +278,7 @@ MindBridge is designed to help users track their mental health through:
 #### Daily Check-ins
 ```bash
 # Create a daily check-in
-POST /api/v1/checkins
+POST /api/v1/checkins?user_id=1
 {
   "mood_rating": 7.5,
   "mood_category": "happy",
@@ -121,16 +290,22 @@ POST /api/v1/checkins
 }
 
 # Get user's check-ins
-GET /api/v1/checkins?limit=30&offset=0
+GET /api/v1/checkins?user_id=1&limit=30&offset=0
 
 # Get mood analytics
-GET /api/v1/checkins/analytics?period=monthly
+GET /api/v1/checkins/analytics?user_id=1&period=weekly
+
+# Get check-in streak
+GET /api/v1/checkins/streak?user_id=1
+
+# Get today's check-in
+GET /api/v1/checkins/today?user_id=1
 ```
 
 #### Passive Data
 ```bash
 # Ingest passive data
-POST /api/v1/passive-data
+POST /api/v1/passive-data?user_id=1
 {
   "data_type": "step_count",
   "value": 8500,
@@ -138,8 +313,17 @@ POST /api/v1/passive-data
   "timestamp": "2024-01-15T10:30:00Z"
 }
 
+# Get passive data points
+GET /api/v1/passive-data?user_id=1&data_type=heart_rate&limit=100
+
+# Get aggregated data
+GET /api/v1/passive-data/aggregate?user_id=1&data_type=step_count&period=daily
+
+# Get health metrics summary
+GET /api/v1/passive-data/health-metrics?user_id=1
+
 # Bulk data ingestion
-POST /api/v1/passive-data/bulk
+POST /api/v1/passive-data/bulk?user_id=1
 {
   "data_points": [
     {
@@ -148,7 +332,8 @@ POST /api/v1/passive-data/bulk
       "source": "Fitbit",
       "timestamp": "2024-01-15T10:30:00Z"
     }
-  ]
+  ],
+  "process_async": true
 }
 ```
 
@@ -167,10 +352,30 @@ POST /api/v1/chat
 
 ## 🧪 Testing
 
-### Run Tests
+### With Docker Compose (Recommended)
 ```bash
-# Backend tests
-pytest backend/tests/ -v --cov=backend
+# Run all backend tests
+docker-compose exec backend python -m pytest tests/ -v --cov=backend
+
+# Run specific test files
+docker-compose exec backend python -m pytest tests/unit/test_checkin_endpoints.py -v
+
+# Run integration tests
+docker-compose exec backend python -m pytest tests/integration/ -v
+
+# Run load tests
+docker-compose exec backend python -m pytest tests/load/ -v
+
+# Generate coverage report
+docker-compose exec backend python -m pytest --cov=backend --cov-report=html
+docker-compose exec backend python -c "import webbrowser; webbrowser.open('htmlcov/index.html')"
+```
+
+### Manual Testing
+```bash
+# Backend tests (if running without Docker)
+cd backend
+pytest tests/ -v --cov=backend
 
 # Integration tests
 pytest tests/integration/ -v
@@ -179,11 +384,26 @@ pytest tests/integration/ -v
 pytest tests/load/ -v
 ```
 
-### Test Coverage
+### API Testing Examples
 ```bash
-# Generate coverage report
-pytest --cov=backend --cov-report=html
-open htmlcov/index.html
+# Test health endpoint
+curl -X GET http://localhost:8000/health
+
+# Test checkins endpoint
+curl -X GET "http://localhost:8000/api/v1/checkins?user_id=1&limit=5"
+
+# Test analytics endpoint  
+curl -X GET "http://localhost:8000/api/v1/checkins/analytics?user_id=1&period=weekly"
+
+# Create a test check-in
+curl -X POST "http://localhost:8000/api/v1/checkins?user_id=1" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "mood_rating": 7.5,
+    "mood_category": "happy",
+    "keywords": ["productive", "energetic"],
+    "notes": "Testing the API!"
+  }'
 ```
 
 ## 🔧 Configuration
