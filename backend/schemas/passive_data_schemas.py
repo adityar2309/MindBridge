@@ -169,6 +169,7 @@ class PassiveDataBulkCreate(BaseModel):
     """Schema for bulk creating passive data points."""
     
     data_points: List[PassiveDataCreate] = Field(..., max_items=1000)
+    process_async: bool = Field(default=False, description="Whether to process data asynchronously")
     
     @validator('data_points')
     def validate_data_points(cls, v):
@@ -253,4 +254,14 @@ class DataQualityMetrics(BaseModel):
     average_quality: float
     quality_distribution: Dict[str, int]  # quality ranges
     outlier_count: int
-    missing_data_periods: List[Dict[str, datetime]] 
+    missing_data_periods: List[Dict[str, datetime]]
+
+
+class BulkIngestResponse(BaseModel):
+    """Schema for bulk ingest response."""
+    
+    success_count: int
+    error_count: int
+    total_count: int
+    created_ids: List[int]
+    processing_async: bool 

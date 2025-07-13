@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mindbridge-config
+  namespace: mindbridge
+  labels:
+    app: mindbridge
+data:
+  # Application configuration
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  
+  # Database configuration
+  DATABASE_HOST: "postgres-service"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "mindbridge_prod"
+  
+  # Redis configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  
+  # API configuration
+  ALLOWED_ORIGINS: "https://mindbridge.app,https://api.mindbridge.app"
+  TRUSTED_HOSTS: "mindbridge.app,api.mindbridge.app"
+  
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  
+  # Feature flags
+  ENABLE_ANALYTICS: "true"
+  ENABLE_MONITORING: "true" 

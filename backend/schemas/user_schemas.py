@@ -163,4 +163,14 @@ class ResetPasswordRequest(BaseModel):
         """Validate that passwords match."""
         if 'new_password' in values and v != values['new_password']:
             raise ValueError('Passwords do not match')
-        return v 
+        return v
+
+
+class HealthCheckResponse(BaseModel):
+    """Schema for health check response."""
+    
+    status: str
+    timestamp: datetime
+    version: str
+    environment: str
+    details: Optional[Dict[str, Any]] = None 
