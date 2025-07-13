@@ -208,7 +208,7 @@ async def get_data_points(
 async def get_aggregated_data(
     user_id: int = Query(..., description="User ID"),
     data_type: str = Query(..., description="Data type to aggregate"),
-    period: str = Query("daily", regex="^(hourly|daily|weekly|monthly)$", description="Aggregation period"),
+    period: str = Query("daily", pattern="^(hourly|daily|weekly|monthly)$", description="Aggregation period"),
     start_date: Optional[datetime] = Query(None, description="Start date for aggregation"),
     end_date: Optional[datetime] = Query(None, description="End date for aggregation"),
     service: PassiveDataService = Depends(get_passive_data_service)

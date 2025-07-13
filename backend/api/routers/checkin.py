@@ -187,7 +187,7 @@ async def get_checkin_streak(
 @router.get("/analytics/", response_model=MoodAnalytics)
 async def get_mood_analytics(
     user_id: int = Query(..., description="User ID"),
-    period: str = Query("monthly", regex="^(daily|weekly|monthly)$", description="Analysis period"),
+    period: str = Query("monthly", pattern="^(daily|weekly|monthly)$", description="Analysis period"),
     service: CheckinService = Depends(get_checkin_service)
 ):
     """

@@ -113,7 +113,7 @@ class ConversationUpdate(BaseModel):
     """Schema for updating a conversation log."""
     
     response_quality: Optional[float] = Field(None, ge=1.0, le=5.0)
-    user_feedback: Optional[str] = Field(None, regex="^(positive|negative|neutral)$")
+    user_feedback: Optional[str] = Field(None, pattern="^(positive|negative|neutral)$")
 
 
 class ConversationResponse(BaseModel):
