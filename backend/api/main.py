@@ -16,6 +16,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import structlog
+import time
 
 from .routers import checkin_router, passive_data_router, health_router, metrics_router
 from models.database import engine, Base
@@ -188,7 +189,7 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
         """Log all incoming requests."""
-        start_time = request.state.start_time = structlog.processors.TimeStamper()._stamper()
+        start_time = request.state.start_time = time.time()
         
         logger.info(
             "Request started",
@@ -200,7 +201,7 @@ def create_app() -> FastAPI:
         
         response = await call_next(request)
         
-        process_time = structlog.processors.TimeStamper()._stamper() - start_time
+        process_time = time.time() - start_time
         
         logger.info(
             "Request completed",
