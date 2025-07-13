@@ -221,8 +221,9 @@ class ApiService {
   // Health check
   Future<bool> checkHealth() async {
     try {
+      // Health endpoint is at /health, not /api/v1/health
       final response = await http.get(
-        Uri.parse('$_baseUrl/health'),
+        Uri.parse('http://localhost:8000/health'),
         headers: _headers,
       );
       return response.statusCode == 200;
