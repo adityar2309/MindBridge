@@ -78,14 +78,9 @@ dev_dependencies:
   
   # Network Testing
   http_mock_adapter: ^0.4.4
-  nock: ^1.2.3
-  
-  # Performance Testing
-  flutter_test_ui: ^0.1.1
   
   # Coverage
   coverage: ^1.7.0
-  lcov: ^6.1.0
 
 flutter:
   uses-material-design: true
