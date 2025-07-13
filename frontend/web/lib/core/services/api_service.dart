@@ -92,7 +92,7 @@ class ApiService {
   // Check-in methods
   Future<DailyCheckinResponse> createCheckin(DailyCheckinCreate checkinData, int userId) async {
     final response = await http.post(
-      Uri.parse('$_baseUrl/checkins?user_id=$userId'),
+      Uri.parse('$_baseUrl/checkins/?user_id=$userId'),
       headers: _headers,
       body: json.encode(checkinData.toJson()),
     );
@@ -106,12 +106,12 @@ class ApiService {
     }
   }
   
-  Future<List<DailyCheckinResponse>> getUserCheckins(int userId, {int limit = 30, int offset = 0}) async {
+    Future<List<DailyCheckinResponse>> getUserCheckins(int userId, {int limit = 30, int offset = 0}) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/checkins?user_id=$userId&limit=$limit&offset=$offset'),
+      Uri.parse('$_baseUrl/checkins/?user_id=$userId&limit=$limit&offset=$offset'),
       headers: _headers,
     );
-    
+
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
       return data.map((json) => DailyCheckinResponse.fromJson(json)).toList();
@@ -120,13 +120,13 @@ class ApiService {
       throw Exception('Failed to fetch check-ins');
     }
   }
-  
+
   Future<MoodAnalytics> getMoodAnalytics(int userId, {String period = 'monthly'}) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/checkins/analytics?user_id=$userId&period=$period'),
+      Uri.parse('$_baseUrl/checkins/analytics/?user_id=$userId&period=$period'),
       headers: _headers,
     );
-    
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return MoodAnalytics.fromJson(data);
@@ -135,13 +135,13 @@ class ApiService {
       throw Exception('Failed to fetch mood analytics');
     }
   }
-  
+
   Future<CheckinStreak> getCheckinStreak(int userId) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/checkins/streak?user_id=$userId'),
+      Uri.parse('$_baseUrl/checkins/streak/?user_id=$userId'),
       headers: _headers,
     );
-    
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       return CheckinStreak.fromJson(data);

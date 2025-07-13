@@ -147,6 +147,29 @@ async def get_checkin_streak(
     return service.get_checkin_streak(user_id)
 
 
+@router.get("/", response_model=List[DailyCheckinResponse])
+async def get_user_checkins(
+    user_id: int = Query(..., description="User ID"),
+    limit: int = Query(30, ge=1, le=100, description="Number of check-ins to return"),
+    offset: int = Query(0, ge=0, description="Number of check-ins to skip"),
+    service: CheckinService = Depends(get_checkin_service)
+):
+    """
+    Get user's check-ins with pagination.
+    
+    Args:
+        user_id: User ID from query parameter.
+        limit: Maximum number of results.
+        offset: Number of results to skip.
+        service: CheckinService dependency.
+        
+    Returns:
+        List of check-ins.
+    """
+    checkins = service.get_user_checkins(user_id, limit, offset)
+    return [DailyCheckinResponse.model_validate(checkin) for checkin in checkins]
+
+
 @router.get("/{checkin_id}", response_model=DailyCheckinResponse)
 async def get_checkin(
     checkin_id: int = Path(..., description="Check-in ID"),
@@ -201,29 +224,6 @@ async def update_checkin(
         raise NotFoundException("Check-in", str(checkin_id))
     
     return DailyCheckinResponse.model_validate(checkin)
-
-
-@router.get("/", response_model=List[DailyCheckinResponse])
-async def get_user_checkins(
-    user_id: int = Query(..., description="User ID"),
-    limit: int = Query(30, ge=1, le=100, description="Number of check-ins to return"),
-    offset: int = Query(0, ge=0, description="Number of check-ins to skip"),
-    service: CheckinService = Depends(get_checkin_service)
-):
-    """
-    Get user's check-ins with pagination.
-    
-    Args:
-        user_id: User ID from query parameter.
-        limit: Maximum number of results.
-        offset: Number of results to skip.
-        service: CheckinService dependency.
-        
-    Returns:
-        List of check-ins.
-    """
-    checkins = service.get_user_checkins(user_id, limit, offset)
-    return [DailyCheckinResponse.model_validate(checkin) for checkin in checkins]
 
 
  
