@@ -63,19 +63,33 @@ class ApiClient {
   }
 
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response: AxiosResponse<ApiResponse<T>> = await this.client.get(url, config);
-    if (response.data.success === false) {
-      throw new Error(response.data.message || 'Request failed');
-    }
-    return response.data.data as T;
+    const response: AxiosResponse<T> = await this.client.get(url, config);
+    return response.data;
   }
 
   async post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response: AxiosResponse<ApiResponse<T>> = await this.client.post(url, data, config);
-    if (response.data.success === false) {
-      throw new Error(response.data.message || 'Request failed');
-    }
-    return response.data.data as T;
+    const response: AxiosResponse<T> = await this.client.post(url, data, config);
+    return response.data;
+  }
+
+  async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response: AxiosResponse<T> = await this.client.put(url, data, config);
+    return response.data;
+  }
+
+  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response: AxiosResponse<T> = await this.client.delete(url, config);
+    return response.data;
+  }
+
+  // Set authentication token
+  setAuthToken(token: string): void {
+    this.client.defaults.headers.common.Authorization = `Bearer ${token}`;
+  }
+
+  // Clear authentication token
+  clearAuthToken(): void {
+    delete this.client.defaults.headers.common.Authorization;
   }
 
   async put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {

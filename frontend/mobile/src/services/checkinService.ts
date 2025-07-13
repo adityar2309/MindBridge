@@ -1,21 +1,249 @@
 import { apiClient } from './apiClient';
 import { API_ENDPOINTS } from '@/constants';
-import { CheckinCreate, DailyCheckin, MoodAnalytics } from '@/types';
+import { 
+  DailyCheckinCreate,
+  DailyCheckinResponse,
+  DailyCheckinUpdate,
+  MoodAnalytics,
+  CheckinStreak,
+  MoodTrend,
+  QuickMoodEntry,
+  // Legacy types for backward compatibility
+  CheckinCreate, 
+  DailyCheckin 
+} from '@/types';
 
 class CheckinService {
   /**
    * Create a new daily check-in.
    */
-  async createCheckin(checkinData: CheckinCreate): Promise<DailyCheckin> {
+  async createCheckin(checkinData: DailyCheckinCreate | CheckinCreate, userId: number): Promise<DailyCheckinResponse> {
     try {
-      const checkin = await apiClient.post<DailyCheckin>(
-        API_ENDPOINTS.checkins.create,
+      const checkin = await apiClient.post<DailyCheckinResponse>(
+        `${API_ENDPOINTS.checkins.create}?user_id=${userId}`,
         checkinData
       );
       return checkin;
     } catch (error) {
-      throw error;
+      throw this.handleCheckinError(error);
     }
+  }
+
+  /**
+   * Create a quick mood entry (simplified check-in).
+   */
+  async createQuickMood(moodData: QuickMoodEntry, userId: number): Promise<DailyCheckinResponse> {
+    try {
+      const checkinData: DailyCheckinCreate = {
+        mood_rating: moodData.mood_rating,
+        mood_category: moodData.mood_category,
+        keywords: moodData.keywords,
+      };
+      
+      return await this.createCheckin(checkinData, userId);
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Get user's check-ins with pagination.
+   */
+  async getUserCheckins(
+    userId: number, 
+    options: {
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<DailyCheckinResponse[]> {
+    try {
+      const { limit = 30, offset = 0 } = options;
+      const checkins = await apiClient.get<DailyCheckinResponse[]>(
+        `${API_ENDPOINTS.checkins.list}?user_id=${userId}&limit=${limit}&offset=${offset}`
+      );
+      return checkins;
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Get a specific check-in by ID.
+   */
+  async getCheckin(checkinId: number, userId: number): Promise<DailyCheckinResponse> {
+    try {
+      const checkin = await apiClient.get<DailyCheckinResponse>(
+        `${API_ENDPOINTS.checkins.list}/${checkinId}?user_id=${userId}`
+      );
+      return checkin;
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Update an existing check-in.
+   */
+  async updateCheckin(
+    checkinId: number, 
+    updateData: DailyCheckinUpdate, 
+    userId: number
+  ): Promise<DailyCheckinResponse> {
+    try {
+      const checkin = await apiClient.put<DailyCheckinResponse>(
+        `${API_ENDPOINTS.checkins.list}/${checkinId}?user_id=${userId}`,
+        updateData
+      );
+      return checkin;
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Delete a check-in.
+   */
+  async deleteCheckin(checkinId: number, userId: number): Promise<void> {
+    try {
+      await apiClient.delete(
+        `${API_ENDPOINTS.checkins.list}/${checkinId}?user_id=${userId}`
+      );
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Get mood analytics for a time period.
+   */
+  async getMoodAnalytics(
+    userId: number, 
+    period: 'daily' | 'weekly' | 'monthly' = 'monthly'
+  ): Promise<MoodAnalytics> {
+    try {
+      const analytics = await apiClient.get<MoodAnalytics>(
+        `${API_ENDPOINTS.checkins.analytics}?user_id=${userId}&period=${period}`
+      );
+      return analytics;
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Get check-in streak information.
+   */
+  async getCheckinStreak(userId: number): Promise<CheckinStreak> {
+    try {
+      const streak = await apiClient.get<CheckinStreak>(
+        `${API_ENDPOINTS.checkins.streak}?user_id=${userId}`
+      );
+      return streak;
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Get mood trends for a specific time range.
+   */
+  async getMoodTrends(
+    userId: number, 
+    days: number = 30
+  ): Promise<MoodTrend[]> {
+    try {
+      const trends = await apiClient.get<MoodTrend[]>(
+        `${API_ENDPOINTS.checkins.list}/trends?user_id=${userId}&days=${days}`
+      );
+      return trends;
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Get recent check-ins (shortcut method).
+   */
+  async getRecentCheckins(userId: number, limit: number = 5): Promise<DailyCheckinResponse[]> {
+    return await this.getUserCheckins(userId, { limit, offset: 0 });
+  }
+
+  /**
+   * Check if user has checked in today.
+   */
+  async hasCheckedInToday(userId: number): Promise<boolean> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const recentCheckins = await this.getRecentCheckins(userId, 1);
+      
+      if (recentCheckins.length === 0) {
+        return false;
+      }
+      
+      const latestCheckinDate = recentCheckins[0].timestamp.split('T')[0];
+      return latestCheckinDate === today;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Get today's check-in if it exists.
+   */
+  async getTodaysCheckin(userId: number): Promise<DailyCheckinResponse | null> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const recentCheckins = await this.getRecentCheckins(userId, 5);
+      
+      const todaysCheckin = recentCheckins.find(checkin => 
+        checkin.timestamp.split('T')[0] === today
+      );
+      
+      return todaysCheckin || null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  /**
+   * Get dashboard data (combined analytics and recent check-ins).
+   */
+  async getDashboardData(userId: number): Promise<{
+    recentCheckins: DailyCheckinResponse[];
+    analytics: MoodAnalytics;
+    streak: CheckinStreak;
+    todaysCheckin: DailyCheckinResponse | null;
+  }> {
+    try {
+      const [recentCheckins, analytics, streak, todaysCheckin] = await Promise.all([
+        this.getRecentCheckins(userId, 5),
+        this.getMoodAnalytics(userId, 'weekly'),
+        this.getCheckinStreak(userId),
+        this.getTodaysCheckin(userId),
+      ]);
+
+      return {
+        recentCheckins,
+        analytics,
+        streak,
+        todaysCheckin,
+      };
+    } catch (error) {
+      throw this.handleCheckinError(error);
+    }
+  }
+
+  /**
+   * Handle check-in service errors with consistent formatting.
+   */
+  private handleCheckinError(error: any): Error {
+    if (error.response?.data?.message) {
+      return new Error(error.response.data.message);
+    }
+    if (error.message) {
+      return new Error(error.message);
+    }
+    return new Error('Check-in operation failed');
   }
 
   /**

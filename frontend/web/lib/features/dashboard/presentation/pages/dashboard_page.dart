@@ -5,6 +5,7 @@ import '../bloc/dashboard_bloc.dart';
 import '../../widgets/mood_chart_widget.dart';
 import '../../widgets/stats_cards_widget.dart';
 import '../../widgets/recent_checkins_widget.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -17,7 +18,15 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    context.read<DashboardBloc>().add(DashboardDataRequested());
+    // Load dashboard data when user is authenticated
+    _loadDashboardData();
+  }
+
+  void _loadDashboardData() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<DashboardBloc>().add(DashboardDataRequested(authState.user.userId));
+    }
   }
 
   @override

@@ -461,7 +461,7 @@ void main() {
       TestConfig.tearDown();
     });
 
-    group('Dashboard Page', () => {
+    group('Dashboard Page', () {
       testWidgets('should render dashboard page correctly', (WidgetTester tester) async {
         await tester.pumpWidget(
           TestHelpers.createTestableWidget(
@@ -523,7 +523,7 @@ void main() {
       });
     });
 
-    group('Welcome Card', () => {
+    group('Welcome Card', () {
       testWidgets('should display user information', (WidgetTester tester) async {
         await tester.pumpWidget(
           TestHelpers.createTestableWidget(
@@ -554,7 +554,7 @@ void main() {
       });
     });
 
-    group('Quick Actions', () => {
+    group('Quick Actions', () {
       testWidgets('should render all quick action cards', (WidgetTester tester) async {
         await tester.pumpWidget(
           TestHelpers.createTestableWidget(
@@ -592,7 +592,7 @@ void main() {
       });
     });
 
-    group('Mood Chart', () => {
+    group('Mood Chart', () {
       testWidgets('should display mood chart with data', (WidgetTester tester) async {
         await tester.pumpWidget(
           TestHelpers.createTestableWidget(
@@ -620,7 +620,7 @@ void main() {
       });
     });
 
-    group('Recent Check-ins', () => {
+    group('Recent Check-ins', () {
       testWidgets('should display recent check-ins list', (WidgetTester tester) async {
         await tester.pumpWidget(
           TestHelpers.createTestableWidget(
@@ -654,7 +654,7 @@ void main() {
       });
     });
 
-    group('Insights Card', () => {
+    group('Insights Card', () {
       testWidgets('should display personal insights', (WidgetTester tester) async {
         await tester.pumpWidget(
           TestHelpers.createTestableWidget(
@@ -687,7 +687,7 @@ void main() {
       });
     });
 
-    group('Scrolling and Layout', () => {
+    group('Scrolling and Layout', () {
       testWidgets('should be scrollable', (WidgetTester tester) async {
         await tester.pumpWidget(
           TestHelpers.createTestableWidget(
@@ -720,7 +720,7 @@ void main() {
       });
     });
 
-    group('Performance', () => {
+    group('Performance', () {
       testWidgets('should render within performance limits', (WidgetTester tester) async {
         final buildTime = await PerformanceTestHelpers.measureWidgetBuildTime(
           tester,

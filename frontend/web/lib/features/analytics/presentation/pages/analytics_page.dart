@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/analytics_bloc.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class AnalyticsPage extends StatefulWidget {
   const AnalyticsPage({super.key});
@@ -13,7 +14,15 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   @override
   void initState() {
     super.initState();
-    context.read<AnalyticsBloc>().add(AnalyticsDataRequested());
+    // Load analytics data when user is authenticated
+    _loadAnalyticsData();
+  }
+
+  void _loadAnalyticsData() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      context.read<AnalyticsBloc>().add(AnalyticsDataRequested(authState.user.userId));
+    }
   }
 
   @override
@@ -39,7 +48,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      context.read<AnalyticsBloc>().add(AnalyticsDataRequested());
+                      _loadAnalyticsData();
                     },
                     child: const Text('Retry'),
                   ),

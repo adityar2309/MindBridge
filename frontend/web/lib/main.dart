@@ -13,6 +13,8 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import 'features/analytics/presentation/bloc/analytics_bloc.dart';
 import 'core/services/api_service.dart';
+import 'models/user_models.dart';
+import 'models/checkin_models.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
