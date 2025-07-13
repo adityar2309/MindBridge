@@ -1,0 +1,800 @@
+/**
+ * MindBridge - Main React Application Component
+ * 
+ * This component serves as the central hub for the MindBridge mood and mental health tracker.
+ * It includes all core features: daily check-ins, mood quiz, AI copilot, and chat interface.
+ * 
+ * Features:
+ * - Daily mood and stress level check-ins
+ * - AI-generated mood quiz with insights
+ * - Contextual AI copilot for grounding exercises
+ * - Conversational chat assistant
+ * - Adaptive UI based on mood state
+ * - Responsive design with Tailwind CSS
+ */
+
+import React, { useState, useEffect } from 'react';
+import { 
+  Home, 
+  Heart, 
+  Brain, 
+  MessageCircle, 
+  Plus,
+  Send,
+  RefreshCw,
+  Calendar,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Loader2
+} from 'lucide-react';
+
+// API base URL - adjust for your backend
+const API_BASE_URL = 'http://localhost:5000/api';
+
+function App() {
+  // Main application state
+  const [currentPage, setCurrentPage] = useState('home');
+  const [currentMood, setCurrentMood] = useState('neutral');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Check-in state
+  const [checkinData, setCheckinData] = useState({
+    mood: '',
+    stress_level: 5,
+    notes: ''
+  });
+  const [recentCheckins, setRecentCheckins] = useState([]);
+
+  // Quiz state
+  const [quizQuestion, setQuizQuestion] = useState(null);
+  const [selectedAnswer, setSelectedAnswer] = useState('');
+  const [quizInsight, setQuizInsight] = useState('');
+  const [quizStarted, setQuizStarted] = useState(false);
+
+  // Copilot state
+  const [copilotPrompt, setCopilotPrompt] = useState('');
+  const [copilotResponse, setCopilotResponse] = useState('');
+
+  // Chat state
+  const [chatMessages, setChatMessages] = useState([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+
+  // Load recent check-ins on component mount
+  useEffect(() => {
+    loadRecentCheckins();
+  }, []);
+
+  // Determine adaptive UI colors based on current mood
+  const getMoodColors = () => {
+    switch (currentMood) {
+      case 'happy':
+        return {
+          background: 'bg-gradient-to-br from-green-50 to-emerald-100',
+          primary: 'bg-mood-happy',
+          text: 'text-green-800',
+          border: 'border-green-300'
+        };
+      case 'sad':
+        return {
+          background: 'bg-gradient-to-br from-gray-50 to-slate-100',
+          primary: 'bg-mood-sad',
+          text: 'text-gray-800',
+          border: 'border-gray-300'
+        };
+      case 'stressed':
+        return {
+          background: 'bg-gradient-to-br from-red-50 to-rose-100',
+          primary: 'bg-mood-stressed',
+          text: 'text-red-800',
+          border: 'border-red-300'
+        };
+      case 'calm':
+        return {
+          background: 'bg-gradient-to-br from-blue-50 to-sky-100',
+          primary: 'bg-mood-calm',
+          text: 'text-blue-800',
+          border: 'border-blue-300'
+        };
+      default:
+        return {
+          background: 'bg-gradient-to-br from-gray-50 to-neutral-100',
+          primary: 'bg-mood-neutral',
+          text: 'text-gray-800',
+          border: 'border-gray-300'
+        };
+    }
+  };
+
+  const colors = getMoodColors();
+
+  // API helper functions
+  const apiCall = async (endpoint, options = {}) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers
+        },
+        ...options
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API call failed:', error);
+      throw error;
+    }
+  };
+
+  // Load recent check-ins from backend
+  const loadRecentCheckins = async () => {
+    try {
+      const response = await apiCall('/checkin');
+      if (response.success) {
+        setRecentCheckins(response.checkins);
+        
+        // Update current mood based on most recent check-in
+        if (response.checkins.length > 0) {
+          const latestCheckin = response.checkins[0];
+          updateMoodFromCheckin(latestCheckin);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load check-ins:', error);
+    }
+  };
+
+  // Update UI mood based on check-in data
+  const updateMoodFromCheckin = (checkin) => {
+    const mood = checkin.mood.toLowerCase();
+    const stress = checkin.stress_level;
+
+    if (stress >= 8) {
+      setCurrentMood('stressed');
+    } else if (mood.includes('happy') || mood.includes('great') || mood.includes('good')) {
+      setCurrentMood('happy');
+    } else if (mood.includes('sad') || mood.includes('down') || mood.includes('bad')) {
+      setCurrentMood('sad');
+    } else if (stress <= 3) {
+      setCurrentMood('calm');
+    } else {
+      setCurrentMood('neutral');
+    }
+  };
+
+  // Submit daily check-in
+  const submitCheckin = async () => {
+    if (!checkinData.mood) {
+      setError('Please enter your mood');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiCall('/checkin', {
+        method: 'POST',
+        body: JSON.stringify(checkinData)
+      });
+
+      if (response.success) {
+        setSuccess('Check-in submitted successfully!');
+        setCheckinData({ mood: '', stress_level: 5, notes: '' });
+        loadRecentCheckins();
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(response.error || 'Failed to submit check-in');
+      }
+    } catch (error) {
+      setError('Failed to submit check-in. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Start mood quiz
+  const startQuiz = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiCall('/mood_quiz/generate');
+      if (response.success) {
+        setQuizQuestion(response.question);
+        setQuizStarted(true);
+        setQuizInsight('');
+      } else {
+        setError(response.error || 'Failed to start quiz');
+      }
+    } catch (error) {
+      setError('Failed to start quiz. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Submit quiz answer
+  const submitQuizAnswer = async () => {
+    if (!selectedAnswer) {
+      setError('Please select an answer');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiCall('/mood_quiz/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          question_id: quizQuestion.id,
+          answer: selectedAnswer
+        })
+      });
+
+      if (response.success) {
+        setQuizInsight(response.insight);
+        setSelectedAnswer('');
+      } else {
+        setError(response.error || 'Failed to submit answer');
+      }
+    } catch (error) {
+      setError('Failed to submit answer. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get grounding exercise from copilot
+  const getGroundingExercise = async () => {
+    if (!copilotPrompt.trim()) {
+      setError('Please enter a request');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await apiCall('/copilot/grounding', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: copilotPrompt })
+      });
+
+      if (response.success) {
+        setCopilotResponse(response.exercise);
+      } else {
+        setError(response.error || 'Failed to get exercise');
+      }
+    } catch (error) {
+      setError('Failed to get exercise. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Send chat message
+  const sendChatMessage = async () => {
+    if (!currentMessage.trim()) return;
+
+    const userMessage = {
+      id: Date.now(),
+      text: currentMessage,
+      sender: 'user',
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    const messageToSend = currentMessage;
+    setCurrentMessage('');
+    setLoading(true);
+    
+    try {
+      const response = await apiCall('/chat', {
+        method: 'POST',
+        body: JSON.stringify({ message: messageToSend })
+      });
+
+      if (response.success) {
+        const assistantMessage = {
+          id: Date.now() + 1,
+          text: response.response,
+          sender: 'assistant',
+          timestamp: new Date().toLocaleTimeString()
+        };
+        setChatMessages(prev => [...prev, assistantMessage]);
+      } else {
+        setError(response.error || 'Failed to send message');
+      }
+    } catch (error) {
+      setError('Failed to send message. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Clear messages
+  const clearMessages = () => {
+    setError('');
+    setSuccess('');
+  };
+
+  // Navigation items
+  const navItems = [
+    { id: 'home', label: 'Home', icon: Home },
+    { id: 'checkin', label: 'Check-in', icon: Heart },
+    { id: 'quiz', label: 'Quiz', icon: Brain },
+    { id: 'copilot', label: 'Copilot', icon: TrendingUp },
+    { id: 'chat', label: 'Chat', icon: MessageCircle }
+  ];
+
+  // Render navigation
+  const renderNavigation = () => (
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-50">
+      <div className="max-w-md mx-auto flex justify-around">
+        {navItems.map(item => {
+          const Icon = item.icon;
+          const isActive = currentPage === item.id;
+          
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setCurrentPage(item.id);
+                clearMessages();
+              }}
+              className={`flex flex-col items-center px-2 py-1 rounded-lg transition-colors
+                ${isActive 
+                  ? `${colors.primary} text-white` 
+                  : 'text-gray-600 hover:text-gray-800'
+                }`}
+            >
+              <Icon size={20} />
+              <span className="text-xs mt-1">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+
+  // Render message displays
+  const renderMessages = () => (
+    <div className="mb-4">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 flex items-center">
+          <AlertTriangle size={16} className="mr-2" />
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4 flex items-center">
+          <CheckCircle size={16} className="mr-2" />
+          {success}
+        </div>
+      )}
+    </div>
+  );
+
+  // Render home page
+  const renderHome = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to MindBridge</h1>
+        <p className="text-gray-600">Your personal mood and mental health companion</p>
+      </div>
+
+      <div className="grid gap-4">
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <Heart className="mr-2 text-red-500" size={20} />
+            Daily Check-in
+          </h2>
+          <p className="text-gray-600 mb-4">Track your mood and stress levels</p>
+          <button
+            onClick={() => setCurrentPage('checkin')}
+            className={`${colors.primary} text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity`}
+          >
+            Start Check-in
+          </button>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <Brain className="mr-2 text-purple-500" size={20} />
+            Mood Quiz
+          </h2>
+          <p className="text-gray-600 mb-4">Get personalized insights about your mood</p>
+          <button
+            onClick={() => setCurrentPage('quiz')}
+            className={`${colors.primary} text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity`}
+          >
+            Take Quiz
+          </button>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <TrendingUp className="mr-2 text-blue-500" size={20} />
+            AI Copilot
+          </h2>
+          <p className="text-gray-600 mb-4">Get grounding exercises and micro-lessons</p>
+          <button
+            onClick={() => setCurrentPage('copilot')}
+            className={`${colors.primary} text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity`}
+          >
+            Get Support
+          </button>
+        </div>
+      </div>
+
+      {/* Passive Data Placeholder */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h3 className="text-lg font-semibold mb-2">Passive Data Analysis</h3>
+        <div className="text-gray-600 space-y-2">
+          <p>📊 Passive data analysis coming soon!</p>
+          <p>💓 Heart Rate: 72 bpm</p>
+          <p>😴 Sleep: 7.5 hours</p>
+          <p className="text-sm text-gray-500">* Placeholder data for demonstration</p>
+        </div>
+      </div>
+
+      {/* Early Warning Placeholder */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h3 className="text-lg font-semibold mb-2">Early Warning System</h3>
+        <div className="text-gray-600">
+          {currentMood === 'stressed' ? (
+            <p className="text-orange-600">⚠️ Looks like you're feeling stressed today. Remember to take a break!</p>
+          ) : currentMood === 'happy' ? (
+            <p className="text-green-600">😊 Great mood today! Keep up the positive energy!</p>
+          ) : (
+            <p>🤖 AI monitoring your patterns for early insights...</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render check-in page
+  const renderCheckin = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Daily Check-in</h1>
+        <p className="text-gray-600">How are you feeling today?</p>
+      </div>
+
+      {renderMessages()}
+
+      <div className="bg-white rounded-lg shadow-sm border p-6 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Overall Mood
+          </label>
+          <select
+            value={checkinData.mood}
+            onChange={(e) => setCheckinData({...checkinData, mood: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select your mood</option>
+            <option value="Very Happy">😄 Very Happy</option>
+            <option value="Happy">😊 Happy</option>
+            <option value="Neutral">😐 Neutral</option>
+            <option value="Sad">😢 Sad</option>
+            <option value="Very Sad">😭 Very Sad</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Stress Level: {checkinData.stress_level}/10
+          </label>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={checkinData.stress_level}
+            onChange={(e) => setCheckinData({...checkinData, stress_level: parseInt(e.target.value)})}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>Low</span>
+            <span>High</span>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Notes/Reflections
+          </label>
+          <textarea
+            value={checkinData.notes}
+            onChange={(e) => setCheckinData({...checkinData, notes: e.target.value})}
+            placeholder="How are you feeling? What's on your mind?"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
+          />
+        </div>
+
+        <button
+          onClick={submitCheckin}
+          disabled={loading}
+          className={`w-full ${colors.primary} text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center`}
+        >
+          {loading ? (
+            <Loader2 className="animate-spin mr-2" size={20} />
+          ) : (
+            <Plus className="mr-2" size={20} />
+          )}
+          {loading ? 'Submitting...' : 'Submit Check-in'}
+        </button>
+      </div>
+
+      {/* Recent Check-ins */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center">
+          <Calendar className="mr-2" size={20} />
+          Recent Check-ins
+        </h3>
+        
+        {recentCheckins.length === 0 ? (
+          <p className="text-gray-500">No check-ins yet. Start your first check-in above!</p>
+        ) : (
+          <div className="space-y-3">
+            {recentCheckins.map(checkin => (
+              <div key={checkin.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium">Mood: {checkin.mood}</p>
+                    <p className="text-sm text-gray-600">Stress: {checkin.stress_level}/10</p>
+                    {checkin.notes && (
+                      <p className="text-sm text-gray-700 mt-1">{checkin.notes}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-500">
+                    {new Date(checkin.timestamp).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Render quiz page
+  const renderQuiz = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Mood Quiz</h1>
+        <p className="text-gray-600">Discover insights about your current mood</p>
+      </div>
+
+      {renderMessages()}
+
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        {!quizStarted ? (
+          <div className="text-center space-y-4">
+            <Brain className="mx-auto text-purple-500" size={48} />
+            <h2 className="text-xl font-semibold">Ready to explore your mood?</h2>
+            <p className="text-gray-600">
+              Take our quick mood quiz to get personalized insights about your mental state.
+            </p>
+            <button
+              onClick={startQuiz}
+              disabled={loading}
+              className={`${colors.primary} text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center mx-auto`}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin mr-2" size={20} />
+              ) : (
+                <Brain className="mr-2" size={20} />
+              )}
+              {loading ? 'Loading...' : 'Start Quiz'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {quizQuestion && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">{quizQuestion.question}</h3>
+                <div className="space-y-2">
+                  {quizQuestion.options.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedAnswer(option)}
+                      className={`w-full p-3 text-left rounded-lg border transition-colors
+                        ${selectedAnswer === option 
+                          ? `${colors.primary} text-white border-transparent` 
+                          : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+                        }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                
+                <button
+                  onClick={submitQuizAnswer}
+                  disabled={!selectedAnswer || loading}
+                  className={`w-full mt-4 ${colors.primary} text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center`}
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                  ) : (
+                    <Send className="mr-2" size={20} />
+                  )}
+                  {loading ? 'Analyzing...' : 'Submit Answer'}
+                </button>
+              </div>
+            )}
+
+            {quizInsight && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">Your Mood Insight:</h4>
+                <p className="text-blue-800">{quizInsight}</p>
+                <button
+                  onClick={() => {
+                    setQuizStarted(false);
+                    setQuizInsight('');
+                    setSelectedAnswer('');
+                    setQuizQuestion(null);
+                  }}
+                  className="mt-3 text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Take Another Quiz
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Render copilot page
+  const renderCopilot = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">AI Copilot</h1>
+        <p className="text-gray-600">Get personalized grounding exercises and support</p>
+      </div>
+
+      {renderMessages()}
+
+      <div className="bg-white rounded-lg shadow-sm border p-6 space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            What kind of support do you need?
+          </label>
+          <input
+            type="text"
+            value={copilotPrompt}
+            onChange={(e) => setCopilotPrompt(e.target.value)}
+            placeholder="e.g., 'I need a grounding exercise', 'breathing techniques', 'mindfulness'"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <button
+          onClick={getGroundingExercise}
+          disabled={loading}
+          className={`w-full ${colors.primary} text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center`}
+        >
+          {loading ? (
+            <Loader2 className="animate-spin mr-2" size={20} />
+          ) : (
+            <TrendingUp className="mr-2" size={20} />
+          )}
+          {loading ? 'Getting Support...' : 'Get Support'}
+        </button>
+      </div>
+
+      {copilotResponse && (
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h3 className="text-lg font-semibold mb-4">Your Personalized Exercise:</h3>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <pre className="whitespace-pre-wrap text-gray-700 font-medium leading-relaxed">
+              {copilotResponse}
+            </pre>
+          </div>
+          <button
+            onClick={() => setCopilotResponse('')}
+            className="mt-4 text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Clear Exercise
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  // Render chat page
+  const renderChat = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Chat Assistant</h1>
+        <p className="text-gray-600">Talk to your supportive AI companion</p>
+        <p className="text-sm text-gray-500 mt-1">Assistant is learning to understand tone</p>
+      </div>
+
+      {renderMessages()}
+
+      {/* Chat Messages */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <div className="h-64 overflow-y-auto scrollbar-hide space-y-3 mb-4">
+          {chatMessages.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              <MessageCircle className="mx-auto mb-2" size={32} />
+              <p>Start a conversation with your AI assistant</p>
+            </div>
+          ) : (
+            chatMessages.map(message => (
+              <div
+                key={message.id}
+                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-xs px-4 py-2 rounded-lg ${
+                    message.sender === 'user'
+                      ? `${colors.primary} text-white`
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  <p className="text-sm">{message.text}</p>
+                  <p className="text-xs mt-1 opacity-75">{message.timestamp}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Chat Input */}
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={currentMessage}
+            onChange={(e) => setCurrentMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
+            placeholder="Type your message..."
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={sendChatMessage}
+            disabled={loading || !currentMessage.trim()}
+            className={`${colors.primary} text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center`}
+          >
+            {loading ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <Send size={20} />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Main render
+  return (
+    <div className={`min-h-screen ${colors.background} mood-transition pb-20`}>
+      <div className="max-w-md mx-auto p-4">
+        {currentPage === 'home' && renderHome()}
+        {currentPage === 'checkin' && renderCheckin()}
+        {currentPage === 'quiz' && renderQuiz()}
+        {currentPage === 'copilot' && renderCopilot()}
+        {currentPage === 'chat' && renderChat()}
+      </div>
+      
+      {renderNavigation()}
+    </div>
+  );
+}
+
+export default App; 
