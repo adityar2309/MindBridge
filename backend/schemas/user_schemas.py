@@ -109,14 +109,46 @@ class UserResponse(BaseModel):
     """Schema for user response."""
     
     user_id: int
-    name: str
     email: str
-    registration_date: datetime
+    first_name: str 
+    last_name: str
+    date_of_birth: Optional[datetime] = None
+    timezone: str
     is_active: bool
     settings: Dict[str, Any]
-    last_login: Optional[datetime]
-    timezone: str
-    language: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    profile_picture_url: Optional[str] = None
+    
+    @model_validator(mode='before')
+    @classmethod
+    def split_name_field(cls, values):
+        """Split the 'name' field into first_name and last_name for Flutter compatibility."""
+        if isinstance(values, dict):
+            data = values
+        else:
+            # Handle SQLAlchemy model objects
+            data = {}
+            for key in ['user_id', 'email', 'name', 'timezone', 'is_active', 'settings', 'registration_date', 'last_login']:
+                if hasattr(values, key):
+                    data[key] = getattr(values, key)
+        
+        # Split name into first_name and last_name
+        if 'name' in data and data['name']:
+            name_parts = data['name'].split(' ', 1)
+            data['first_name'] = name_parts[0]
+            data['last_name'] = name_parts[1] if len(name_parts) > 1 else ''
+        
+        # Map registration_date to created_at
+        if 'registration_date' in data:
+            data['created_at'] = data['registration_date']
+            
+        # Handle missing optional fields
+        data.setdefault('date_of_birth', None)
+        data.setdefault('updated_at', data.get('last_login'))
+        data.setdefault('profile_picture_url', None)
+        
+        return data
     
     class Config:
         from_attributes = True
@@ -169,6 +201,20 @@ class TokenResponse(BaseModel):
     expires_in: int
     refresh_token: Optional[str] = None
     user: UserResponse
+    
+    @model_validator(mode='before')
+    @classmethod
+    def ensure_refresh_token(cls, values):
+        """Ensure refresh_token is properly set."""
+        if isinstance(values, dict):
+            data = values
+        else:
+            data = values.__dict__ if hasattr(values, '__dict__') else values
+            
+        # Ensure refresh_token is explicitly None if not provided
+        data.setdefault('refresh_token', None)
+        
+        return data
 
 
 class RefreshTokenRequest(BaseModel):
