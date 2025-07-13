@@ -17,37 +17,16 @@ class MindBridgeAPITestCase(unittest.TestCase):
     
     def setUp(self):
         """Set up test environment before each test."""
-        # Create a temporary database file
-        self.db_fd, self.temp_db = tempfile.mkstemp()
+        # Use in-memory database for testing
         app.config['TESTING'] = True
-        app.config['DATABASE'] = self.temp_db
         
         # Override the database name for testing
         global DB_NAME
         self.original_db_name = DB_NAME
-        DB_NAME = self.temp_db
+        DB_NAME = ':memory:'
         
         # Initialize test database
         init_db()
-        
-        # Clear any existing data (table should exist after init_db)
-        conn = sqlite3.connect(DB_NAME)
-        cursor = conn.cursor()
-        try:
-            cursor.execute('DELETE FROM checkins')
-        except sqlite3.OperationalError:
-            # Table doesn't exist, create it
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS checkins (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    mood TEXT NOT NULL,
-                    stress_level INTEGER NOT NULL,
-                    notes TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-        conn.commit()
-        conn.close()
         
         # Create test client
         self.client = app.test_client()
@@ -56,8 +35,6 @@ class MindBridgeAPITestCase(unittest.TestCase):
         """Clean up after each test."""
         global DB_NAME
         DB_NAME = self.original_db_name
-        os.close(self.db_fd)
-        os.unlink(self.temp_db)
     
     def test_health_check(self):
         """Test the health check endpoint."""
