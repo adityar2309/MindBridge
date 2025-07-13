@@ -18,7 +18,7 @@ from fastapi.exceptions import RequestValidationError
 import structlog
 import time
 
-from .routers import checkin_router, passive_data_router, health_router, metrics_router
+from .routers import auth_router, checkin_router, passive_data_router, health_router, metrics_router
 from models.database import engine, Base
 from core.exceptions import MindBridgeException
 from core.metrics import metrics_collector
@@ -109,6 +109,7 @@ def create_app() -> FastAPI:
     # Include routers
     app.include_router(health_router, prefix="/health", tags=["health"])
     app.include_router(metrics_router, tags=["monitoring"])
+    app.include_router(auth_router, prefix="/api/v1/auth", tags=["authentication"])
     app.include_router(checkin_router, prefix="/api/v1/checkins", tags=["checkins"])
     app.include_router(passive_data_router, prefix="/api/v1/passive-data", tags=["passive-data"])
     
