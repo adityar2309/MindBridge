@@ -52,11 +52,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (isHealthy) {
             // For now, create a demo user since we don't have a "me" endpoint
             // In a real app, you'd fetch the current user profile
+            // Using the correct test user ID that exists in the database
             final demoUser = User(
-              userId: 1,
-              firstName: 'Demo',
+              userId: 2,
+              firstName: 'Test',
               lastName: 'User',
-              email: 'demo@mindbridge.app',
+              email: 'test@example.com',
               createdAt: DateTime.now(),
               updatedAt: DateTime.now(),
               isActive: true,
