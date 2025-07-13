@@ -12,8 +12,8 @@ from sqlalchemy import func, and_, or_
 import hashlib
 import json
 
-from ..models import PassiveDataPoint, User, DataType, DataSource
-from ..schemas import (
+from models import PassiveDataPoint, User, DataType, DataSource
+from schemas import (
     PassiveDataCreate, PassiveDataUpdate, PassiveDataResponse,
     PassiveDataBulkCreate, DataAggregation, HealthMetrics
 )

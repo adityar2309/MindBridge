@@ -11,10 +11,10 @@ from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
 
-from ...models.database import get_db
-from ...core.checkin_service import CheckinService
-from ...core.exceptions import NotFoundException, ConflictException, ValidationException
-from ...schemas.checkin_schemas import (
+from models.database import get_db
+from core.checkin_service import CheckinService
+from core.exceptions import NotFoundException, ConflictException, ValidationException
+from schemas.checkin_schemas import (
     DailyCheckinCreate, DailyCheckinUpdate, DailyCheckinResponse,
     MoodAnalytics, CheckinStreak, MoodTrend
 )

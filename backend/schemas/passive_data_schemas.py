@@ -80,7 +80,7 @@ class PassiveDataCreate(BaseModel):
     value: Union[int, float, str, Dict[str, Any]]
     source: DataSourceEnum
     timestamp: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
+    meta_data: Optional[Dict[str, Any]] = Field(default_factory=dict)
     quality_score: Optional[float] = Field(default=1.0, ge=0.0, le=1.0)
     
     @validator('value')
@@ -130,7 +130,7 @@ class PassiveDataUpdate(BaseModel):
     """Schema for updating a passive data point."""
     
     value: Optional[Union[int, float, str, Dict[str, Any]]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    meta_data: Optional[Dict[str, Any]] = None
     quality_score: Optional[float] = Field(None, ge=0.0, le=1.0)
     processed: Optional[bool] = None
 
@@ -144,7 +144,7 @@ class PassiveDataResponse(BaseModel):
     data_type: str
     value: Union[int, float, str, Dict[str, Any]]
     source: str
-    metadata: Dict[str, Any]
+    meta_data: Dict[str, Any]
     quality_score: float
     processed: bool
     

@@ -18,9 +18,9 @@ from fastapi.exceptions import RequestValidationError
 import structlog
 
 from .routers import checkin_router, passive_data_router, health_router, metrics_router
-from ..models.database import engine, Base
-from ..core.exceptions import MindBridgeException
-from ..core.metrics import metrics_collector
+from models.database import engine, Base
+from core.exceptions import MindBridgeException
+from core.metrics import metrics_collector
 
 
 # Configure structured logging

@@ -86,7 +86,7 @@ class PassiveDataPoint(Base):
         data_type: Type of data being recorded
         value: The actual data value (can be numeric or JSON)
         source: Source of the data
-        metadata: Additional context information
+        meta_data: Additional context information
         quality_score: Data quality/reliability score (0-1)
         processed: Whether the data has been processed by ML models
     """
@@ -99,7 +99,7 @@ class PassiveDataPoint(Base):
     data_type = Column(String(50), nullable=False)
     value = Column(JSON, nullable=False)  # Can store numeric or complex data
     source = Column(String(50), nullable=False)
-    metadata = Column(JSON, default=dict)  # Additional context
+    meta_data = Column(JSON, default=dict)  # Additional context
     quality_score = Column(Float, default=1.0)  # 0-1 reliability score
     processed = Column(Boolean, default=False)
     
@@ -118,7 +118,7 @@ class PassiveDataPoint(Base):
             "data_type": self.data_type,
             "value": self.value,
             "source": self.source,
-            "metadata": self.metadata,
+            "meta_data": self.meta_data,
             "quality_score": self.quality_score,
             "processed": self.processed
         }

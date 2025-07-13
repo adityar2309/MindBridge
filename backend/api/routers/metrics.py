@@ -8,7 +8,7 @@ application metrics and health information.
 from fastapi import APIRouter, Response
 from fastapi.responses import PlainTextResponse
 
-from ...core.metrics import get_metrics, CONTENT_TYPE_LATEST
+from core.metrics import get_metrics, CONTENT_TYPE_LATEST
 
 
 router = APIRouter()

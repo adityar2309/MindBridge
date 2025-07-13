@@ -13,8 +13,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from ...models.database import get_db
-from ...schemas.user_schemas import HealthCheckResponse
+from models.database import get_db
+from schemas.user_schemas import HealthCheckResponse
 
 
 router = APIRouter()

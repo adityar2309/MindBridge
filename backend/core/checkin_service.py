@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 
-from ..models import DailyCheckin, User
-from ..schemas import (
+from models import DailyCheckin, User
+from schemas import (
     DailyCheckinCreate, DailyCheckinUpdate, DailyCheckinResponse,
     MoodAnalytics, CheckinStreak, MoodTrend
 )
