@@ -66,6 +66,7 @@
 - Need to integrate existing DASS-21 model with new architecture
 - Consider data migration strategy for existing model
 - Implement gradual rollout strategy for new features
+- Authentication flow implementation with login/signup redirect to homepage - 2024-01-XX
 
 ### Part 3 Implementation Details (Completed)
 - ✅ Created comprehensive FastAPI application with middleware and error handling
