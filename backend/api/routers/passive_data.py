@@ -67,8 +67,8 @@ async def ingest_data_point(
 @router.post("/bulk", response_model=BulkIngestResponse, status_code=201)
 async def bulk_ingest_data(
     bulk_data: PassiveDataBulkCreate,
-    user_id: int = Query(..., description="User ID"),
     background_tasks: BackgroundTasks,
+    user_id: int = Query(..., description="User ID"),
     service: PassiveDataService = Depends(get_passive_data_service)
 ):
     """
