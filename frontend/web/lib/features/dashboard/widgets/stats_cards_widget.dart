@@ -66,6 +66,7 @@ class _StatCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
@@ -75,7 +76,6 @@ class _StatCard extends StatelessWidget {
                   ),
                   child: Icon(icon, color: color, size: 24),
                 ),
-                const Spacer(),
               ],
             ),
             const SizedBox(height: 12),

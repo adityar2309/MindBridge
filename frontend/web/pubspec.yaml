@@ -16,9 +16,9 @@ dependencies:
   flutter_layout_grid: ^2.0.5
   
   # State Management
-  flutter_bloc: ^8.1.3
-  bloc: ^8.1.2
-  hydrated_bloc: ^9.1.2
+  flutter_bloc: ^9.1.1
+  bloc: ^9.0.0
+  hydrated_bloc: ^10.0.0
   
   # HTTP & API
   http: ^1.1.0
@@ -26,24 +26,23 @@ dependencies:
   json_annotation: ^4.8.1
   
   # Charts & Data Visualization
-  fl_chart: ^0.64.0
-  syncfusion_flutter_charts: ^23.1.36
+  fl_chart: ^1.0.0
+  syncfusion_flutter_charts: ^30.1.39
   
   # UI Components
   material_design_icons_flutter: ^7.0.7296
   flutter_animate: ^4.2.0+1
   shimmer: ^3.0.0
-  lottie: ^2.7.0
+  lottie: ^3.3.1
   
   # Utilities
-  intl: ^0.18.1
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.1
   path_provider: ^2.1.1
   
   # Forms & Validation
-  flutter_form_builder: ^9.1.1
-  form_builder_validators: ^9.1.0
+  flutter_form_builder: ^10.1.0
+  form_builder_validators: ^11.2.0
   
   # Storage
   hive: ^2.2.3
@@ -59,10 +58,10 @@ dev_dependencies:
   hive_generator: ^2.0.1
   
   # Linting
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
   
   # Testing Dependencies
-  bloc_test: ^9.1.4
+  bloc_test: ^10.0.0
   mocktail: ^1.0.0
   mockito: ^5.4.2
   fake_async: ^1.3.1
@@ -74,10 +73,10 @@ dev_dependencies:
   
   # Widget Testing
   golden_toolkit: ^0.15.0
-  alchemist: ^0.7.0
+  alchemist: ^0.12.1
   
   # Network Testing
-  http_mock_adapter: ^0.4.4
+  http_mock_adapter: ^0.6.1
   
   # Coverage
   coverage: ^1.7.0
@@ -88,16 +87,4 @@ flutter:
   assets:
     - assets/images/
     - assets/animations/
-    - assets/icons/
-    - test/fixtures/
-  
-  fonts:
-    - family: Inter
-      fonts:
-        - asset: assets/fonts/Inter-Regular.ttf
-        - asset: assets/fonts/Inter-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/Inter-SemiBold.ttf
-          weight: 600
-        - asset: assets/fonts/Inter-Bold.ttf
-          weight: 700 
+    - assets/icons/ 
