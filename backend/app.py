@@ -5,14 +5,21 @@ Provides RESTful API endpoints for check-ins, mood quizzes, AI copilot, and chat
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 import sqlite3
 import json
 import os
-from datetime import datetime
+import bcrypt
+from datetime import datetime, timedelta
 from werkzeug.exceptions import BadRequest
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+# JWT Configuration
+app.config['JWT_SECRET_KEY'] = 'your-secret-key-change-in-production'  # Change this in production
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+jwt = JWTManager(app)
 
 @app.before_request
 def handle_json_errors():
@@ -100,14 +107,27 @@ def init_db():
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
         
-        # Create checkins table
+        # Create users table
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+        
+        # Create checkins table with user_id
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS checkins (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
                 mood TEXT NOT NULL,
                 stress_level INTEGER NOT NULL,
                 notes TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
             )
         ''')
         
@@ -123,24 +143,250 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+def hash_password(password):
+    """Hash a password for storing in the database."""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+def verify_password(password, hashed):
+    """Verify a password against its hash."""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed)
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    """
+    Register a new user.
+    
+    Expected JSON payload:
+        {
+            "username": "string",
+            "email": "string",
+            "password": "string"
+        }
+    
+    Returns:
+        JSON response with success status and user info
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not username or not email or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Username, email, and password are required'
+            }), 400
+        
+        # Validate password strength
+        if len(password) < 6:
+            return jsonify({
+                'success': False,
+                'error': 'Password must be at least 6 characters long'
+            }), 400
+        
+        # Hash password
+        password_hash = hash_password(password)
+        
+        # Insert user into database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                INSERT INTO users (username, email, password_hash) 
+                VALUES (?, ?, ?)
+            ''', (username, email, password_hash))
+            
+            user_id = cursor.lastrowid
+            conn.commit()
+            
+            # Create access token
+            access_token = create_access_token(identity=user_id)
+            
+            conn.close()
+            
+            return jsonify({
+                'success': True,
+                'message': 'User registered successfully',
+                'access_token': access_token,
+                'user': {
+                    'id': user_id,
+                    'username': username,
+                    'email': email
+                }
+            })
+            
+        except sqlite3.IntegrityError as e:
+            conn.close()
+            if 'username' in str(e):
+                return jsonify({
+                    'success': False,
+                    'error': 'Username already exists'
+                }), 409
+            elif 'email' in str(e):
+                return jsonify({
+                    'success': False,
+                    'error': 'Email already exists'
+                }), 409
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'User already exists'
+                }), 409
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to register user: {str(e)}'
+        }), 500
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """
+    Login user and return access token.
+    
+    Expected JSON payload:
+        {
+            "username": "string",
+            "password": "string"
+        }
+    
+    Returns:
+        JSON response with access token and user info
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Username and password are required'
+            }), 400
+        
+        # Get user from database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, username, email, password_hash 
+            FROM users 
+            WHERE username = ?
+        ''', (username,))
+        
+        user = cursor.fetchone()
+        conn.close()
+        
+        if not user or not verify_password(password, user['password_hash']):
+            return jsonify({
+                'success': False,
+                'error': 'Invalid username or password'
+            }), 401
+        
+        # Create access token
+        access_token = create_access_token(identity=user['id'])
+        
+        return jsonify({
+            'success': True,
+            'message': 'Login successful',
+            'access_token': access_token,
+            'user': {
+                'id': user['id'],
+                'username': user['username'],
+                'email': user['email']
+            }
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to login: {str(e)}'
+        }), 500
+
+@app.route('/api/auth/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    """
+    Get current user profile.
+    
+    Returns:
+        JSON response with user profile information
+    """
+    try:
+        user_id = get_jwt_identity()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT id, username, email, created_at 
+            FROM users 
+            WHERE id = ?
+        ''', (user_id,))
+        
+        user = cursor.fetchone()
+        conn.close()
+        
+        if not user:
+            return jsonify({
+                'success': False,
+                'error': 'User not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user['id'],
+                'username': user['username'],
+                'email': user['email'],
+                'created_at': user['created_at']
+            }
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to get profile: {str(e)}'
+        }), 500
+
 @app.route('/api/checkin', methods=['GET'])
+@jwt_required()
 def get_checkins():
     """
-    Retrieve the last 5 mood check-ins from the database.
+    Retrieve the last 5 mood check-ins from the database for the current user.
     
     Returns:
         JSON response with checkins data or error message
     """
     try:
+        user_id = get_jwt_identity()
+        
         conn = get_db_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
             SELECT id, mood, stress_level, notes, timestamp 
             FROM checkins 
+            WHERE user_id = ?
             ORDER BY timestamp DESC 
             LIMIT 5
-        ''')
+        ''', (user_id,))
         
         checkins = cursor.fetchall()
         conn.close()
@@ -168,9 +414,10 @@ def get_checkins():
         }), 500
 
 @app.route('/api/checkin', methods=['POST'])
+@jwt_required()
 def submit_checkin():
     """
-    Submit a new mood check-in to the database.
+    Submit a new mood check-in to the database for the current user.
     
     Expected JSON payload:
         {
@@ -183,6 +430,7 @@ def submit_checkin():
         JSON response with success status and message
     """
     try:
+        user_id = get_jwt_identity()
         data = request.get_json()
         
         if not data:
@@ -214,9 +462,9 @@ def submit_checkin():
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO checkins (mood, stress_level, notes) 
-            VALUES (?, ?, ?)
-        ''', (mood, stress_level, notes))
+            INSERT INTO checkins (user_id, mood, stress_level, notes) 
+            VALUES (?, ?, ?, ?)
+        ''', (user_id, mood, stress_level, notes))
         
         conn.commit()
         conn.close()
@@ -233,6 +481,7 @@ def submit_checkin():
         }), 500
 
 @app.route('/api/mood_quiz/generate', methods=['GET'])
+@jwt_required()
 def generate_mood_quiz():
     """
     Generate a mood quiz question.
@@ -258,6 +507,7 @@ def generate_mood_quiz():
         }), 500
 
 @app.route('/api/mood_quiz/submit', methods=['POST'])
+@jwt_required()
 def submit_mood_quiz():
     """
     Submit a mood quiz answer and get insight.
@@ -335,6 +585,7 @@ def generate_mood_insight(answer):
         return "Thanks for sharing your thoughts. Self-reflection is an important part of mental wellness."
 
 @app.route('/api/copilot/grounding', methods=['POST'])
+@jwt_required()
 def get_grounding_exercise():
     """
     Get a grounding exercise or micro-lesson based on the user's prompt.
@@ -386,6 +637,7 @@ def get_grounding_exercise():
         }), 500
 
 @app.route('/api/chat', methods=['POST'])
+@jwt_required()
 def chat_response():
     """
     Generate a conversational response based on the user's message.
