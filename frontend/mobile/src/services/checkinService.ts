@@ -57,7 +57,7 @@ class CheckinService {
       return checkin;
     } catch (error) {
       // Return null if no check-in found for the date
-      if (error.message?.includes('404') || error.message?.includes('not found')) {
+      if (error instanceof Error && (error.message?.includes('404') || error.message?.includes('not found'))) {
         return null;
       }
       throw error;

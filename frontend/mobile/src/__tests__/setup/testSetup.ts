@@ -5,6 +5,11 @@
 
 import '@testing-library/jest-native/extend-expect';
 
+// Global type declarations
+declare global {
+  var global: typeof globalThis;
+}
+
 // Extend Jest matchers for better assertions
 declare global {
   namespace jest {

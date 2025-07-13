@@ -197,7 +197,7 @@ jest.mock('axios', () => ({
 }));
 
 // Global test console settings
-global.console = {
+globalThis.console = {
   ...console,
   // Suppress console.warn in tests unless explicitly needed
   warn: jest.fn(),
@@ -226,7 +226,7 @@ const mockDimensions = {
 };
 
 jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
-  get: jest.fn((dim) => mockDimensions[dim]),
+  get: jest.fn((dim: keyof typeof mockDimensions) => mockDimensions[dim]),
   addEventListener: jest.fn(),
   removeEventListener: jest.fn(),
 })); 

@@ -104,7 +104,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.fieldLabel}>Email</Text>
             <View style={[
               styles.inputContainer,
-              touched.email && errors.email && styles.inputError
+              touched.email && errors.email ? styles.inputError : undefined
             ]}>
               <Icon name="email" size={20} color={theme.colors.textSecondary} />
               <TextInput
@@ -130,7 +130,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.fieldLabel}>Password</Text>
             <View style={[
               styles.inputContainer,
-              touched.password && errors.password && styles.inputError
+              touched.password && errors.password ? styles.inputError : undefined
             ]}>
               <Icon name="lock" size={20} color={theme.colors.textSecondary} />
               <TextInput

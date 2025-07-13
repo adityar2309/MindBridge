@@ -68,13 +68,14 @@ const App: React.FC = () => {
     };
 
     // Add global error listeners
-    if (global.addEventListener) {
-      global.addEventListener('unhandledRejection', handleUnhandledRejection);
+    const globalWithEvents = globalThis as any;
+    if (globalWithEvents.addEventListener) {
+      globalWithEvents.addEventListener('unhandledRejection', handleUnhandledRejection);
     }
 
     return () => {
-      if (global.removeEventListener) {
-        global.removeEventListener('unhandledRejection', handleUnhandledRejection);
+      if (globalWithEvents.removeEventListener) {
+        globalWithEvents.removeEventListener('unhandledRejection', handleUnhandledRejection);
       }
     };
   }, []);
