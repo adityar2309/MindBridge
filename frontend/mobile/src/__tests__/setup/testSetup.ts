@@ -29,7 +29,7 @@ export const TestUtils = {
    * Wait for async operations to complete
    */
   waitForAsync: async (timeout = 1000) => {
-    return new Promise(resolve => setTimeout(resolve, timeout));
+    return new Promise<void>(resolve => setTimeout(resolve, timeout));
   },
 
   /**
@@ -139,7 +139,7 @@ export const TestUtils = {
 };
 
 // Redux Store Test Utilities
-export const ReduxTestUtils = {
+const ReduxTestUtils = {
   /**
    * Create mock Redux store for testing
    */
@@ -168,7 +168,7 @@ export const ReduxTestUtils = {
 };
 
 // API Test Utilities
-export const ApiTestUtils = {
+const ApiTestUtils = {
   /**
    * Mock successful API response
    */
@@ -203,7 +203,7 @@ export const ApiTestUtils = {
 };
 
 // Navigation Test Utilities
-export const NavigationTestUtils = {
+const NavigationTestUtils = {
   /**
    * Create mock navigation prop
    */
@@ -239,7 +239,7 @@ export const NavigationTestUtils = {
 };
 
 // Form Test Utilities
-export const FormTestUtils = {
+const FormTestUtils = {
   /**
    * Fill form field with value
    */
@@ -267,7 +267,7 @@ export const FormTestUtils = {
 };
 
 // Animation Test Utilities
-export const AnimationTestUtils = {
+const AnimationTestUtils = {
   /**
    * Fast forward animations
    */
