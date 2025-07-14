@@ -40,6 +40,32 @@ import {
 const API_BASE_URL = 'http://localhost:5000/api';
 
 function App() {
+  const [dassQuestions] = useState([
+  { id: 1, text: "I found it hard to wind down", tag: "s" },
+  { id: 2, text: "I was aware of dryness of my mouth", tag: "a" },
+  { id: 3, text: "I couldn’t seem to experience any positive feeling at all", tag: "d" },
+  { id: 4, text: "I experienced breathing difficulty", tag: "a" },
+  { id: 5, text: "I found it difficult to work up the initiative to do things", tag: "d" },
+  { id: 6, text: "I tended to over-react to situations", tag: "s" },
+  { id: 7, text: "I experienced trembling", tag: "a" },
+  { id: 8, text: "I felt that I was using a lot of nervous energy", tag: "s" },
+  { id: 9, text: "I was worried about situations in which I might panic", tag: "a" },
+  { id: 10, text: "I felt that I had nothing to look forward to", tag: "d" },
+  { id: 11, text: "I found myself getting agitated", tag: "s" },
+  { id: 12, text: "I found it difficult to relax", tag: "s" },
+  { id: 13, text: "I felt down-hearted and blue", tag: "d" },
+  { id: 14, text: "I was intolerant of anything that kept me from getting on", tag: "s" },
+  { id: 15, text: "I felt I was close to panic", tag: "a" },
+  { id: 16, text: "I was unable to become enthusiastic about anything", tag: "d" },
+  { id: 17, text: "I felt I wasn’t worth much as a person", tag: "d" },
+  { id: 18, text: "I felt that I was rather touchy", tag: "s" },
+  { id: 19, text: "I was aware of the action of my heart", tag: "a" },
+  { id: 20, text: "I felt scared without any good reason", tag: "a" },
+  { id: 21, text: "I felt that life was meaningless", tag: "d" },
+]);
+  const [currentDassIndex, setCurrentDassIndex] = useState(0);
+  const [dassAnswers, setDassAnswers] = useState({});
+
   // Authentication state
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('mindbridge_token'));
@@ -73,6 +99,8 @@ function App() {
   const [selectedAnswer, setSelectedAnswer] = useState('');
   const [quizInsight, setQuizInsight] = useState('');
   const [quizStarted, setQuizStarted] = useState(false);
+  const [quizType, setQuizType] = useState(null); // 'mood' or 'dass21'
+
 
   // Copilot state
   const [copilotPrompt, setCopilotPrompt] = useState('');
@@ -155,6 +183,14 @@ function App() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (quizType === 'dass' && Object.keys(dassAnswers).length === 21) {
+      handleDassSubmit();
+    }
+  }, [dassAnswers]);
+
+  
 
   // Register function
   const register = async () => {
@@ -359,26 +395,31 @@ function App() {
     }
   };
 
-  // Start mood quiz
-  const startQuiz = async () => {
-    setLoading(true);
-    setError('');
-    
+  const startQuiz = async (type) => {
+  setQuizType(type);
+  setQuizInsight('');
+  setSelectedAnswer('');
+  setQuizQuestion(null);
+  setDassAnswers({});
+  setCurrentDassIndex(0);
+  setError('');
+  setSuccess('');
+  setQuizStarted(true);
+
+  if (type === 'mood') {
     try {
       const response = await apiCall('/mood_quiz/generate');
       if (response.success) {
         setQuizQuestion(response.question);
-        setQuizStarted(true);
-        setQuizInsight('');
       } else {
         setError(response.error || 'Failed to start quiz');
       }
     } catch (error) {
       setError('Failed to start quiz. Please try again.');
-    } finally {
-      setLoading(false);
     }
-  };
+  }
+};
+
 
   // Submit quiz answer
   const submitQuizAnswer = async () => {
@@ -411,6 +452,34 @@ function App() {
       setLoading(false);
     }
   };
+
+const handleDassSubmit = async () => {
+  console.log('Submitting DASS-21 answers:', dassAnswers); // ✅ Debug log
+  try {
+    const response = await apiCall('/dass21/submit', {
+      method: 'POST',
+      body: JSON.stringify({ answers: dassAnswers })  // ✅ Wrap in { answers: ... }
+    });
+
+    if (response.success) {
+      const summary = `
+Depression: ${response.severity.Depression} (${response.scores.Depression})
+Anxiety: ${response.severity.Anxiety} (${response.scores.Anxiety})
+Stress: ${response.severity.Stress} (${response.scores.Stress})`.trim();
+
+      setQuizInsight(summary);
+      setCurrentDassIndex(dassQuestions.length); // ✅ Force show summary screen
+
+    } else {
+      setError(response.error || 'Failed to evaluate DASS-21');
+    }
+  } catch (err) {
+    setError('Something went wrong submitting DASS-21');
+  }
+  
+};
+
+
 
   // Get grounding exercise from copilot
   const getGroundingExercise = async () => {
@@ -866,95 +935,155 @@ function App() {
     </div>
   );
 
-  // Render quiz page
   const renderQuiz = () => (
-    <div className="space-y-6">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Mood Quiz</h1>
-        <p className="text-gray-600">Discover insights about your current mood</p>
-      </div>
+    
+  <div className="space-y-6">
+    <div className="text-center">
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">
+        {quizType === 'dass' ? 'DASS-21 Mental Health Quiz' : 'Mood Quiz'}
+      </h1>
+      <p className="text-gray-600">
+        {quizType === 'dass'
+          ? 'This questionnaire helps assess depression, anxiety, and stress levels over the past week.'
+          : 'Discover insights about your current mood'}
+      </p>
+    </div>
 
-      {renderMessages()}
+    {renderMessages()}
 
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        {!quizStarted ? (
-          <div className="text-center space-y-4">
-            <Brain className="mx-auto text-purple-500" size={48} />
-            <h2 className="text-xl font-semibold">Ready to explore your mood?</h2>
-            <p className="text-gray-600">
-              Take our quick mood quiz to get personalized insights about your mental state.
-            </p>
+    <div className="bg-white rounded-lg shadow-sm border p-6">
+      {!quizStarted ? (
+        <div className="text-center space-y-4">
+          <Brain className="mx-auto text-purple-500" size={48} />
+          <h2 className="text-xl font-semibold">Ready to explore your mental state?</h2>
+          <p className="text-gray-600">
+            Choose a quiz type to get personalized insights about your mind.
+          </p>
+          <div className="flex flex-col gap-4 items-center">
             <button
-              onClick={startQuiz}
-              disabled={loading}
-              className={`${colors.primary} text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center mx-auto`}
+              onClick={() => startQuiz('mood')}
+              className={`${colors.primary} text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 flex items-center justify-center`}
             >
-              {loading ? (
-                <Loader2 className="animate-spin mr-2" size={20} />
-              ) : (
-                <Brain className="mr-2" size={20} />
-              )}
-              {loading ? 'Loading...' : 'Start Quiz'}
+              <Brain className="mr-2" size={20} />
+              Mood Quiz
+            </button>
+            <button
+              onClick={() => startQuiz('dass')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 flex items-center justify-center"
+            >
+              <Brain className="mr-2" size={20} />
+              DASS-21 Quiz
             </button>
           </div>
-        ) : (
+        </div>
+      ) : quizType === 'mood' ? (
+        <div className="space-y-4">
+          {quizQuestion && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">{quizQuestion.question}</h3>
+              <div className="space-y-2">
+                {quizQuestion.options.map((option, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedAnswer(option)}
+                    className={`w-full p-3 text-left rounded-lg border transition-colors
+                      ${selectedAnswer === option 
+                        ? `${colors.primary} text-white border-transparent` 
+                        : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+                      }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={submitQuizAnswer}
+                disabled={!selectedAnswer || loading}
+                className={`w-full mt-4 ${colors.primary} text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center`}
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin mr-2" size={20} />
+                ) : (
+                  <Send className="mr-2" size={20} />
+                )}
+                {loading ? 'Analyzing...' : 'Submit Answer'}
+              </button>
+            </div>
+          )}
+          {quizInsight && (
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold text-blue-900 mb-2">Your Mood Insight:</h4>
+              <p className="text-blue-800">{quizInsight}</p>
+              <button
+                onClick={() => {
+                  setQuizStarted(false);
+                  setQuizInsight('');
+                  setSelectedAnswer('');
+                  setQuizQuestion(null);
+                  setQuizType(null);
+                }}
+                className="mt-3 text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Take Another Quiz
+              </button>
+            </div>
+          )}
+        </div>
+      ) : currentDassIndex < dassQuestions.length ? (
           <div className="space-y-4">
-            {quizQuestion && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">{quizQuestion.question}</h3>
-                <div className="space-y-2">
-                  {quizQuestion.options.map((option, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedAnswer(option)}
-                      className={`w-full p-3 text-left rounded-lg border transition-colors
-                        ${selectedAnswer === option 
-                          ? `${colors.primary} text-white border-transparent` 
-                          : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
-                        }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
-                
+            <h3 className="text-lg font-semibold mb-4">
+              Question {currentDassIndex + 1} of 21
+            </h3>
+            <p className="text-gray-700 mb-4">
+              {dassQuestions[currentDassIndex].text}
+            </p>
+            <div className="grid gap-3">
+              {[0, 1, 2, 3].map(score => (
                 <button
-                  onClick={submitQuizAnswer}
-                  disabled={!selectedAnswer || loading}
-                  className={`w-full mt-4 ${colors.primary} text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center`}
-                >
-                  {loading ? (
-                    <Loader2 className="animate-spin mr-2" size={20} />
-                  ) : (
-                    <Send className="mr-2" size={20} />
-                  )}
-                  {loading ? 'Analyzing...' : 'Submit Answer'}
-                </button>
-              </div>
-            )}
-
-            {quizInsight && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-2">Your Mood Insight:</h4>
-                <p className="text-blue-800">{quizInsight}</p>
-                <button
+                  key={score}
                   onClick={() => {
-                    setQuizStarted(false);
-                    setQuizInsight('');
-                    setSelectedAnswer('');
-                    setQuizQuestion(null);
+                    setDassAnswers(prev => ({
+                      ...prev,
+                      [dassQuestions[currentDassIndex].id]: score
+                    }));
+                    if (currentDassIndex < dassQuestions.length - 1) {
+                      setCurrentDassIndex(prev => prev + 1);
+                    }
                   }}
-                  className="mt-3 text-blue-600 hover:text-blue-800 font-medium"
+                  className="w-full py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
                 >
-                  Take Another Quiz
+                  {score} – {[
+                    "Did not apply at all",
+                    "Applied to some degree",
+                    "Applied to a good part of time",
+                    "Applied very much or most of the time"
+                  ][score]}
                 </button>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
-        )}
-      </div>
+        ) : (
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="font-semibold text-blue-900 mb-2">DASS-21 Summary:</h4>
+            <pre className="text-blue-800 whitespace-pre-wrap">{quizInsight}</pre>
+            <button
+              onClick={() => {
+                setQuizStarted(false);
+                setQuizInsight('');
+                setDassAnswers({});
+                setCurrentDassIndex(0);
+                setQuizType(null);
+              }}
+              className="mt-3 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Take Another Quiz
+          </button>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
+
 
   // Render copilot page
   const renderCopilot = () => (

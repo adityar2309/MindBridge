@@ -130,6 +130,17 @@ def init_db():
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         ''')
+        # Add below checkins table creation
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS dass_assessments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                scores TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        ''')
+
         
         conn.commit()
         conn.close()
@@ -555,6 +566,86 @@ def submit_mood_quiz():
             'success': False,
             'error': f'Failed to submit quiz answer: {str(e)}'
         }), 500
+@app.route('/api/dass21/submit', methods=['POST'])
+@jwt_required()
+def submit_dass21():
+    """
+    Submit a completed DASS-21 quiz and calculate severity scores.
+    Expected JSON:
+    {
+        "answers": {
+            "1": 2, "2": 0, ..., "21": 3
+        }
+    }
+    """
+    try:
+        user_id = int(get_jwt_identity())
+        data = request.get_json()
+        
+        data = request.get_json()
+        print("Received DASS-21 submission:", data)  # 👈 Add this line
+
+        answers = data.get('answers')
+        if not answers or len(answers) != 21:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid or incomplete answers'
+            }), 400
+
+
+        answers = data.get('answers')
+
+        if not answers or len(answers) != 21:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid or incomplete answers'
+            }), 400
+
+        # Initialize scores
+        scores = {'d': 0, 'a': 0, 's': 0}
+        tags = {
+            1: 's', 2: 'a', 3: 'd', 4: 'a', 5: 'd', 6: 's', 7: 'a',
+            8: 's', 9: 'a', 10: 'd', 11: 's', 12: 's', 13: 'd',
+            14: 's', 15: 'a', 16: 'd', 17: 'd', 18: 's', 19: 'a',
+            20: 'a', 21: 'd'
+        }
+
+        for qid, value in answers.items():
+            tag = tags.get(int(qid))
+            if tag:
+                scores[tag] += int(value)
+
+        # Multiply by 2 as per DASS-21 scoring
+        for k in scores:
+            scores[k] *= 2
+
+        # Save in database
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO dass_assessments (user_id, scores)
+            VALUES (?, ?)
+        ''', (user_id, json.dumps(scores)))
+        conn.commit()
+        conn.close()
+
+        # Return scores
+        return jsonify({
+    'success': True,
+    'scores': {
+        'Depression': scores['d'],
+        'Anxiety': scores['a'],
+        'Stress': scores['s']
+    },
+    'severity': classify_dass_scores(scores)
+})
+
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to submit DASS-21: {str(e)}'
+        }), 500
 
 def generate_mood_insight(answer):
     """
@@ -583,6 +674,32 @@ def generate_mood_insight(answer):
     # Default response
     else:
         return "Thanks for sharing your thoughts. Self-reflection is an important part of mental wellness."
+def classify_dass_scores(scores):
+    """
+    Map raw scores to severity levels.
+    """
+    def get_level(scale, score):
+        if scale == 'd':
+            return ("Normal" if score < 10 else
+                    "Mild" if score < 14 else
+                    "Moderate" if score < 21 else
+                    "Severe" if score < 28 else "Extremely Severe")
+        elif scale == 'a':
+            return ("Normal" if score < 8 else
+                    "Mild" if score < 10 else
+                    "Moderate" if score < 15 else
+                    "Severe" if score < 20 else "Extremely Severe")
+        elif scale == 's':
+            return ("Normal" if score < 15 else
+                    "Mild" if score < 19 else
+                    "Moderate" if score < 26 else
+                    "Severe" if score < 34 else "Extremely Severe")
+
+    return {
+        "Depression": get_level('d', scores['d']),
+        "Anxiety": get_level('a', scores['a']),
+        "Stress": get_level('s', scores['s'])
+    }
 
 @app.route('/api/copilot/grounding', methods=['POST'])
 @jwt_required()
