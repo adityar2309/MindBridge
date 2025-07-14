@@ -296,37 +296,38 @@ function App() {
 
   // API helper functions with JWT support
   const apiCall = async (endpoint, options = {}) => {
-    try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers
-      };
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
 
-      // Add JWT token if available and not already provided
-      if (token && !headers.Authorization) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        headers,
-        ...options
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Token expired or invalid, logout
-          logout();
-          throw new Error('Session expired. Please login again.');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('API call failed:', error);
-      throw error;
+    // Add JWT token if available and not already provided
+    if (token && !headers.Authorization) {
+      headers.Authorization = `Bearer ${token}`;
     }
-  };
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: options.method || 'GET',
+      headers: headers, // ✅ Use the constructed headers here
+      body: options.body || null
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        logout(); // logout() should be defined in this scope
+        throw new Error('Session expired. Please login again.');
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
+  }
+};
+
 
   // Load recent check-ins from backend
   const loadRecentCheckins = async () => {
@@ -462,15 +463,30 @@ const handleDassSubmit = async () => {
     });
 
     if (response.success) {
-      const summary = `
-Depression: ${response.severity.Depression} (${response.scores.Depression})
-Anxiety: ${response.severity.Anxiety} (${response.scores.Anxiety})
-Stress: ${response.severity.Stress} (${response.scores.Stress})`.trim();
+  const scores = response.scores;
 
-      setQuizInsight(summary);
-      setCurrentDassIndex(dassQuestions.length); // ✅ Force show summary screen
+  // Determine the mood with the highest score
+  const highest = Object.entries(scores).reduce((max, entry) =>
+    entry[1] > max[1] ? entry : max
+  ); // highest = [key, value]
 
-    } else {
+  const predictedMood = highest[0];
+  const predictedScore = highest[1];
+
+  const summary = `
+Predicted Mood: ${predictedMood}
+
+Depression: ${response.severity.Depression} (${scores.Depression})
+Anxiety: ${response.severity.Anxiety} (${scores.Anxiety})
+Stress: ${response.severity.Stress} (${scores.Stress})
+Based on your overall responses, it seems that ${predictedMood} is currently the most prominent challenge you're facing.
+Don't worry - you're not alone, and we're here to help you through it ☺️.
+  `.trim();
+
+  setQuizInsight(summary);
+  setCurrentDassIndex(dassQuestions.length); // ✅ Force show summary screen
+}
+ else {
       setError(response.error || 'Failed to evaluate DASS-21');
     }
   } catch (err) {

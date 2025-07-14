@@ -15,6 +15,10 @@ from werkzeug.exceptions import BadRequest
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+@app.route("/")
+def home():
+    return "Welcome to MindBridge API!"
+
 
 # JWT Configuration
 app.config['JWT_SECRET_KEY'] = 'your-secret-key-change-in-production'  # Change this in production
@@ -162,7 +166,7 @@ def verify_password(password, hashed):
     """Verify a password against its hash."""
     return bcrypt.checkpw(password.encode('utf-8'), hashed)
 
-@app.route('/api/auth/register', methods=['POST'])
+@app.route('/api/auth/register', methods=['POST', 'OPTIONS'])
 def register():
     """
     Register a new user.
@@ -177,53 +181,53 @@ def register():
     Returns:
         JSON response with success status and user info
     """
+
+    if request.method == 'OPTIONS':
+        return '', 204  # CORS preflight response
+
     try:
         data = request.get_json()
-        
+
         if not data:
             return jsonify({
                 'success': False,
                 'error': 'No data provided'
             }), 400
-        
+
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
-        
+
         if not username or not email or not password:
             return jsonify({
                 'success': False,
                 'error': 'Username, email, and password are required'
             }), 400
-        
-        # Validate password strength
+
         if len(password) < 6:
             return jsonify({
                 'success': False,
                 'error': 'Password must be at least 6 characters long'
             }), 400
-        
-        # Hash password
+
         password_hash = hash_password(password)
-        
-        # Insert user into database
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         try:
             cursor.execute('''
                 INSERT INTO users (username, email, password_hash) 
                 VALUES (?, ?, ?)
             ''', (username, email, password_hash))
-            
+
             user_id = cursor.lastrowid
             conn.commit()
-            
-            # Create access token
+
             access_token = create_access_token(identity=str(user_id))
-            
+
             conn.close()
-            
+
             return jsonify({
                 'success': True,
                 'message': 'User registered successfully',
@@ -234,7 +238,7 @@ def register():
                     'email': email
                 }
             })
-            
+
         except sqlite3.IntegrityError as e:
             conn.close()
             if 'username' in str(e):
@@ -252,14 +256,14 @@ def register():
                     'success': False,
                     'error': 'User already exists'
                 }), 409
-    
+
     except Exception as e:
         return jsonify({
             'success': False,
             'error': f'Failed to register user: {str(e)}'
         }), 500
 
-@app.route('/api/auth/login', methods=['POST'])
+@app.route('/api/auth/login', methods=['POST', 'OPTIONS'])
 def login():
     """
     Login user and return access token.
