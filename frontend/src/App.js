@@ -1,25 +1,9 @@
-/**
- * MindBridge - Main React Application Component
- * 
- * This component serves as the central hub for the MindBridge mood and mental health tracker.
- * It includes all core features: daily check-ins, mood quiz, AI copilot, and chat interface.
- * 
- * Features:
- * - User authentication with JWT tokens
- * - Daily mood and stress level check-ins
- * - AI-generated mood quiz with insights
- * - Contextual AI copilot for grounding exercises
- * - Conversational chat assistant
- * - Adaptive UI based on mood state
- * - Responsive design with Tailwind CSS
- */
-
 import React, { useState, useEffect } from 'react';
-import { 
-  Home, 
-  Heart, 
-  Brain, 
-  MessageCircle, 
+import {
+  Home,
+  Heart,
+  Brain,
+  MessageCircle,
   Plus,
   Send,
   RefreshCw,
@@ -33,7 +17,11 @@ import {
   LogIn,
   UserPlus,
   Eye,
-  EyeOff
+  EyeOff,
+  PhoneCall, 
+  BookOpen, 
+  Zap, 
+  Users 
 } from 'lucide-react';
 
 // API base URL - adjust for your backend
@@ -41,28 +29,28 @@ const API_BASE_URL = 'http://localhost:5000/api';
 
 function App() {
   const [dassQuestions] = useState([
-  { id: 1, text: "I found it hard to wind down", tag: "s" },
-  { id: 2, text: "I was aware of dryness of my mouth", tag: "a" },
-  { id: 3, text: "I couldn’t seem to experience any positive feeling at all", tag: "d" },
-  { id: 4, text: "I experienced breathing difficulty", tag: "a" },
-  { id: 5, text: "I found it difficult to work up the initiative to do things", tag: "d" },
-  { id: 6, text: "I tended to over-react to situations", tag: "s" },
-  { id: 7, text: "I experienced trembling", tag: "a" },
-  { id: 8, text: "I felt that I was using a lot of nervous energy", tag: "s" },
-  { id: 9, text: "I was worried about situations in which I might panic", tag: "a" },
-  { id: 10, text: "I felt that I had nothing to look forward to", tag: "d" },
-  { id: 11, text: "I found myself getting agitated", tag: "s" },
-  { id: 12, text: "I found it difficult to relax", tag: "s" },
-  { id: 13, text: "I felt down-hearted and blue", tag: "d" },
-  { id: 14, text: "I was intolerant of anything that kept me from getting on", tag: "s" },
-  { id: 15, text: "I felt I was close to panic", tag: "a" },
-  { id: 16, text: "I was unable to become enthusiastic about anything", tag: "d" },
-  { id: 17, text: "I felt I wasn’t worth much as a person", tag: "d" },
-  { id: 18, text: "I felt that I was rather touchy", tag: "s" },
-  { id: 19, text: "I was aware of the action of my heart", tag: "a" },
-  { id: 20, text: "I felt scared without any good reason", tag: "a" },
-  { id: 21, text: "I felt that life was meaningless", tag: "d" },
-]);
+    { id: 1, text: "I found it hard to wind down", tag: "s" },
+    { id: 2, text: "I was aware of dryness of my mouth", tag: "a" },
+    { id: 3, text: "I couldn’t seem to experience any positive feeling at all", tag: "d" },
+    { id: 4, text: "I experienced breathing difficulty", tag: "a" },
+    { id: 5, text: "I found it difficult to work up the initiative to do things", tag: "d" },
+    { id: 6, text: "I tended to over-react to situations", tag: "s" },
+    { id: 7, text: "I experienced trembling", tag: "a" },
+    { id: 8, text: "I felt that I was using a lot of nervous energy", tag: "s" },
+    { id: 9, text: "I was worried about situations in which I might panic", tag: "a" },
+    { id: 10, text: "I felt that I had nothing to look forward to", tag: "d" },
+    { id: 11, text: "I found myself getting agitated", tag: "s" },
+    { id: 12, text: "I found it difficult to relax", tag: "s" },
+    { id: 13, text: "I felt down-hearted and blue", tag: "d" },
+    { id: 14, text: "I was intolerant of anything that kept me from getting on", tag: "s" },
+    { id: 15, text: "I felt I was close to panic", tag: "a" },
+    { id: 16, text: "I was unable to become enthusiastic about anything", tag: "d" },
+    { id: 17, text: "I felt I wasn’t worth much as a person", tag: "d" },
+    { id: 18, text: "I felt that I was rather touchy", tag: "s" },
+    { id: 19, text: "I was aware of the action of my heart", tag: "a" },
+    { id: 20, text: "I felt scared without any good reason", tag: "a" },
+    { id: 21, text: "I felt that life was meaningless", tag: "d" },
+  ]);
   const [currentDassIndex, setCurrentDassIndex] = useState(0);
   const [dassAnswers, setDassAnswers] = useState({});
 
@@ -110,6 +98,18 @@ function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState('');
 
+  // NEW: Emergency Support State
+  const [trustedFriends, setTrustedFriends] = useState([]);
+  const [newFriend, setNewFriend] = useState({ name: '', number: '' });
+
+  // Dummy counsellors data (replace with API fetch in a real app)
+  const [counsellors] = useState([
+    { id: 1, name: "Dr. Anya Sharma", specialization: "Clinical Psychologist", contact: "+91 9876543210", email: "anya.s@example.com", fee: 1000, firstFree: true },
+    { id: 2, name: "Mr. Rohan Singh", specialization: "Counselling Therapist", contact: "+91 8765432109", email: "rohan.s@example.com", fee: 800, firstFree: false },
+    { id: 3, name: "Ms. Priya Devi", specialization: "Mindfulness Coach", contact: "+91 7654321098", email: "priya.d@example.com", fee: 950, firstFree: true },
+  ]);
+  const [userPoints, setUserPoints] = useState(500); // Dummy points
+
   // Check authentication on component mount
   useEffect(() => {
     checkAuth();
@@ -119,6 +119,8 @@ function App() {
   useEffect(() => {
     if (isAuthenticated) {
       loadRecentCheckins();
+      // Potentially load trusted friends from backend here too
+      // loadTrustedFriends();
     }
   }, [isAuthenticated]);
 
@@ -156,7 +158,7 @@ function App() {
 
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await apiCall('/auth/login', {
         method: 'POST',
@@ -190,7 +192,7 @@ function App() {
     }
   }, [dassAnswers]);
 
-  
+
 
   // Register function
   const register = async () => {
@@ -211,7 +213,7 @@ function App() {
 
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await apiCall('/auth/register', {
         method: 'POST',
@@ -296,37 +298,37 @@ function App() {
 
   // API helper functions with JWT support
   const apiCall = async (endpoint, options = {}) => {
-  try {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers
-    };
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
 
-    // Add JWT token if available and not already provided
-    if (token && !headers.Authorization) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      method: options.method || 'GET',
-      headers: headers, // ✅ Use the constructed headers here
-      body: options.body || null
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        logout(); // logout() should be defined in this scope
-        throw new Error('Session expired. Please login again.');
+      // Add JWT token if available and not already provided
+      if (token && !headers.Authorization) {
+        headers.Authorization = `Bearer ${token}`;
       }
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
 
-    return await response.json();
-  } catch (error) {
-    console.error('API call failed:', error);
-    throw error;
-  }
-};
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: options.method || 'GET',
+        headers: headers, // ✅ Use the constructed headers here
+        body: options.body || null
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout(); // logout() should be defined in this scope
+          throw new Error('Session expired. Please login again.');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API call failed:', error);
+      throw error;
+    }
+  };
 
 
   // Load recent check-ins from backend
@@ -335,7 +337,7 @@ function App() {
       const response = await apiCall('/checkin');
       if (response.success) {
         setRecentCheckins(response.checkins);
-        
+
         // Update current mood based on most recent check-in
         if (response.checkins.length > 0) {
           const latestCheckin = response.checkins[0];
@@ -374,7 +376,7 @@ function App() {
 
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await apiCall('/checkin', {
         method: 'POST',
@@ -397,29 +399,29 @@ function App() {
   };
 
   const startQuiz = async (type) => {
-  setQuizType(type);
-  setQuizInsight('');
-  setSelectedAnswer('');
-  setQuizQuestion(null);
-  setDassAnswers({});
-  setCurrentDassIndex(0);
-  setError('');
-  setSuccess('');
-  setQuizStarted(true);
+    setQuizType(type);
+    setQuizInsight('');
+    setSelectedAnswer('');
+    setQuizQuestion(null);
+    setDassAnswers({});
+    setCurrentDassIndex(0);
+    setError('');
+    setSuccess('');
+    setQuizStarted(true);
 
-  if (type === 'mood') {
-    try {
-      const response = await apiCall('/mood_quiz/generate');
-      if (response.success) {
-        setQuizQuestion(response.question);
-      } else {
-        setError(response.error || 'Failed to start quiz');
+    if (type === 'mood') {
+      try {
+        const response = await apiCall('/mood_quiz/generate');
+        if (response.success) {
+          setQuizQuestion(response.question);
+        } else {
+          setError(response.error || 'Failed to start quiz');
+        }
+      } catch (error) {
+        setError('Failed to start quiz. Please try again.');
       }
-    } catch (error) {
-      setError('Failed to start quiz. Please try again.');
     }
-  }
-};
+  };
 
 
   // Submit quiz answer
@@ -431,7 +433,7 @@ function App() {
 
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await apiCall('/mood_quiz/submit', {
         method: 'POST',
@@ -454,26 +456,26 @@ function App() {
     }
   };
 
-const handleDassSubmit = async () => {
-  console.log('Submitting DASS-21 answers:', dassAnswers); // ✅ Debug log
-  try {
-    const response = await apiCall('/dass21/submit', {
-      method: 'POST',
-      body: JSON.stringify({ answers: dassAnswers })  // ✅ Wrap in { answers: ... }
-    });
+  const handleDassSubmit = async () => {
+    console.log('Submitting DASS-21 answers:', dassAnswers); // ✅ Debug log
+    try {
+      const response = await apiCall('/dass21/submit', {
+        method: 'POST',
+        body: JSON.stringify({ answers: dassAnswers })  // ✅ Wrap in { answers: ... }
+      });
 
-    if (response.success) {
-  const scores = response.scores;
+      if (response.success) {
+        const scores = response.scores;
 
-  // Determine the mood with the highest score
-  const highest = Object.entries(scores).reduce((max, entry) =>
-    entry[1] > max[1] ? entry : max
-  ); // highest = [key, value]
+        // Determine the mood with the highest score
+        const highest = Object.entries(scores).reduce((max, entry) =>
+          entry[1] > max[1] ? entry : max
+        ); // highest = [key, value]
 
-  const predictedMood = highest[0];
-  const predictedScore = highest[1];
+        const predictedMood = highest[0];
+        const predictedScore = highest[1];
 
-  const summary = `
+        const summary = `
 Predicted Mood: ${predictedMood}
 
 Depression: ${response.severity.Depression} (${scores.Depression})
@@ -481,19 +483,19 @@ Anxiety: ${response.severity.Anxiety} (${scores.Anxiety})
 Stress: ${response.severity.Stress} (${scores.Stress})
 Based on your overall responses, it seems that ${predictedMood} is currently the most prominent challenge you're facing.
 Don't worry - you're not alone, and we're here to help you through it ☺️.
-  `.trim();
+      `.trim();
 
-  setQuizInsight(summary);
-  setCurrentDassIndex(dassQuestions.length); // ✅ Force show summary screen
-}
- else {
-      setError(response.error || 'Failed to evaluate DASS-21');
+        setQuizInsight(summary);
+        setCurrentDassIndex(dassQuestions.length); // ✅ Force show summary screen
+      }
+      else {
+        setError(response.error || 'Failed to evaluate DASS-21');
+      }
+    } catch (err) {
+      setError('Something went wrong submitting DASS-21');
     }
-  } catch (err) {
-    setError('Something went wrong submitting DASS-21');
-  }
-  
-};
+
+  };
 
 
 
@@ -506,7 +508,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
 
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await apiCall('/copilot/grounding', {
         method: 'POST',
@@ -540,7 +542,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
     const messageToSend = currentMessage;
     setCurrentMessage('');
     setLoading(true);
-    
+
     try {
       const response = await apiCall('/chat', {
         method: 'POST',
@@ -577,7 +579,8 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
     { id: 'checkin', label: 'Check-in', icon: Heart },
     { id: 'quiz', label: 'Quiz', icon: Brain },
     { id: 'copilot', label: 'Copilot', icon: TrendingUp },
-    { id: 'chat', label: 'Chat', icon: MessageCircle }
+    { id: 'chat', label: 'Chat', icon: MessageCircle },
+    { id: 'emergency', label: 'Emergency', icon: PhoneCall } // NEW: Emergency
   ];
 
   // Render authentication page
@@ -624,7 +627,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
             <input
               type="text"
               value={authData.username}
-              onChange={(e) => setAuthData({...authData, username: e.target.value})}
+              onChange={(e) => setAuthData({ ...authData, username: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your username"
             />
@@ -638,7 +641,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
               <input
                 type="email"
                 value={authData.email}
-                onChange={(e) => setAuthData({...authData, email: e.target.value})}
+                onChange={(e) => setAuthData({ ...authData, email: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter your email"
               />
@@ -653,7 +656,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={authData.password}
-                onChange={(e) => setAuthData({...authData, password: e.target.value})}
+                onChange={(e) => setAuthData({ ...authData, password: e.target.value })}
                 className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Enter your password"
               />
@@ -675,7 +678,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={authData.confirmPassword}
-                onChange={(e) => setAuthData({...authData, confirmPassword: e.target.value})}
+                onChange={(e) => setAuthData({ ...authData, confirmPassword: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Confirm your password"
               />
@@ -708,7 +711,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
-          
+
           return (
             <button
               key={item.id}
@@ -717,8 +720,8 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
                 clearMessages();
               }}
               className={`flex flex-col items-center px-2 py-1 rounded-lg transition-colors
-                ${isActive 
-                  ? `${colors.primary} text-white` 
+                ${isActive
+                  ? `${colors.primary} text-white`
                   : 'text-gray-600 hover:text-gray-800'
                 }`}
             >
@@ -816,6 +819,21 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
             Get Support
           </button>
         </div>
+
+        {/* NEW: Emergency Support Card on Home */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center">
+            <PhoneCall className="mr-2 text-orange-500" size={20} />
+            Emergency Support
+          </h2>
+          <p className="text-gray-600 mb-4">Immediate help and crisis resources</p>
+          <button
+            onClick={() => setCurrentPage('emergency')}
+            className={`bg-orange-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity`}
+          >
+            Get Emergency Help
+          </button>
+        </div>
       </div>
 
       {/* Passive Data Placeholder */}
@@ -862,7 +880,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
           </label>
           <select
             value={checkinData.mood}
-            onChange={(e) => setCheckinData({...checkinData, mood: e.target.value})}
+            onChange={(e) => setCheckinData({ ...checkinData, mood: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select your mood</option>
@@ -883,7 +901,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
             min="1"
             max="10"
             value={checkinData.stress_level}
-            onChange={(e) => setCheckinData({...checkinData, stress_level: parseInt(e.target.value)})}
+            onChange={(e) => setCheckinData({ ...checkinData, stress_level: parseInt(e.target.value) })}
             className="w-full"
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -898,7 +916,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
           </label>
           <textarea
             value={checkinData.notes}
-            onChange={(e) => setCheckinData({...checkinData, notes: e.target.value})}
+            onChange={(e) => setCheckinData({ ...checkinData, notes: e.target.value })}
             placeholder="How are you feeling? What's on your mind?"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-24 resize-none"
           />
@@ -924,7 +942,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
           <Calendar className="mr-2" size={20} />
           Recent Check-ins
         </h3>
-        
+
         {recentCheckins.length === 0 ? (
           <p className="text-gray-500">No check-ins yet. Start your first check-in above!</p>
         ) : (
@@ -952,100 +970,100 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
   );
 
   const renderQuiz = () => (
-    
-  <div className="space-y-6">
-    <div className="text-center">
-      <h1 className="text-2xl font-bold text-gray-900 mb-2">
-        {quizType === 'dass' ? 'DASS-21 Mental Health Quiz' : 'Mood Quiz'}
-      </h1>
-      <p className="text-gray-600">
-        {quizType === 'dass'
-          ? 'This questionnaire helps assess depression, anxiety, and stress levels over the past week.'
-          : 'Discover insights about your current mood'}
-      </p>
-    </div>
 
-    {renderMessages()}
+    <div className="space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          {quizType === 'dass' ? 'DASS-21 Mental Health Quiz' : 'Mood Quiz'}
+        </h1>
+        <p className="text-gray-600">
+          {quizType === 'dass'
+            ? 'This questionnaire helps assess depression, anxiety, and stress levels over the past week.'
+            : 'Discover insights about your current mood'}
+        </p>
+      </div>
 
-    <div className="bg-white rounded-lg shadow-sm border p-6">
-      {!quizStarted ? (
-        <div className="text-center space-y-4">
-          <Brain className="mx-auto text-purple-500" size={48} />
-          <h2 className="text-xl font-semibold">Ready to explore your mental state?</h2>
-          <p className="text-gray-600">
-            Choose a quiz type to get personalized insights about your mind.
-          </p>
-          <div className="flex flex-col gap-4 items-center">
-            <button
-              onClick={() => startQuiz('mood')}
-              className={`${colors.primary} text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 flex items-center justify-center`}
-            >
-              <Brain className="mr-2" size={20} />
-              Mood Quiz
-            </button>
-            <button
-              onClick={() => startQuiz('dass')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 flex items-center justify-center"
-            >
-              <Brain className="mr-2" size={20} />
-              DASS-21 Quiz
-            </button>
+      {renderMessages()}
+
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        {!quizStarted ? (
+          <div className="text-center space-y-4">
+            <Brain className="mx-auto text-purple-500" size={48} />
+            <h2 className="text-xl font-semibold">Ready to explore your mental state?</h2>
+            <p className="text-gray-600">
+              Choose a quiz type to get personalized insights about your mind.
+            </p>
+            <div className="flex flex-col gap-4 items-center">
+              <button
+                onClick={() => startQuiz('mood')}
+                className={`${colors.primary} text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 flex items-center justify-center`}
+              >
+                <Brain className="mr-2" size={20} />
+                Mood Quiz
+              </button>
+              <button
+                onClick={() => startQuiz('dass')}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 flex items-center justify-center"
+              >
+                <Brain className="mr-2" size={20} />
+                DASS-21 Quiz
+              </button>
+            </div>
           </div>
-        </div>
-      ) : quizType === 'mood' ? (
-        <div className="space-y-4">
-          {quizQuestion && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4">{quizQuestion.question}</h3>
-              <div className="space-y-2">
-                {quizQuestion.options.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedAnswer(option)}
-                    className={`w-full p-3 text-left rounded-lg border transition-colors
-                      ${selectedAnswer === option 
-                        ? `${colors.primary} text-white border-transparent` 
-                        : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
-                      }`}
-                  >
-                    {option}
-                  </button>
-                ))}
+        ) : quizType === 'mood' ? (
+          <div className="space-y-4">
+            {quizQuestion && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">{quizQuestion.question}</h3>
+                <div className="space-y-2">
+                  {quizQuestion.options.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedAnswer(option)}
+                      className={`w-full p-3 text-left rounded-lg border transition-colors
+                      ${selectedAnswer === option
+                          ? `${colors.primary} text-white border-transparent`
+                          : 'bg-gray-50 hover:bg-gray-100 border-gray-200'
+                        }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={submitQuizAnswer}
+                  disabled={!selectedAnswer || loading}
+                  className={`w-full mt-4 ${colors.primary} text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center`}
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin mr-2" size={20} />
+                  ) : (
+                    <Send className="mr-2" size={20} />
+                  )}
+                  {loading ? 'Analyzing...' : 'Submit Answer'}
+                </button>
               </div>
-              <button
-                onClick={submitQuizAnswer}
-                disabled={!selectedAnswer || loading}
-                className={`w-full mt-4 ${colors.primary} text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center`}
-              >
-                {loading ? (
-                  <Loader2 className="animate-spin mr-2" size={20} />
-                ) : (
-                  <Send className="mr-2" size={20} />
-                )}
-                {loading ? 'Analyzing...' : 'Submit Answer'}
-              </button>
-            </div>
-          )}
-          {quizInsight && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">Your Mood Insight:</h4>
-              <p className="text-blue-800">{quizInsight}</p>
-              <button
-                onClick={() => {
-                  setQuizStarted(false);
-                  setQuizInsight('');
-                  setSelectedAnswer('');
-                  setQuizQuestion(null);
-                  setQuizType(null);
-                }}
-                className="mt-3 text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Take Another Quiz
-              </button>
-            </div>
-          )}
-        </div>
-      ) : currentDassIndex < dassQuestions.length ? (
+            )}
+            {quizInsight && (
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">Your Mood Insight:</h4>
+                <p className="text-blue-800">{quizInsight}</p>
+                <button
+                  onClick={() => {
+                    setQuizStarted(false);
+                    setQuizInsight('');
+                    setSelectedAnswer('');
+                    setQuizQuestion(null);
+                    setQuizType(null);
+                  }}
+                  className="mt-3 text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Take Another Quiz
+                </button>
+              </div>
+            )}
+          </div>
+        ) : currentDassIndex < dassQuestions.length ? (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold mb-4">
               Question {currentDassIndex + 1} of 21
@@ -1093,12 +1111,12 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
               className="mt-3 text-blue-600 hover:text-blue-800 font-medium"
             >
               Take Another Quiz
-          </button>
-        </div>
-      )}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
 
 
   // Render copilot page
@@ -1224,6 +1242,245 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
     </div>
   );
 
+  // NEW: Render Emergency Support page
+  const renderEmergency = () => {
+    // Trusted Friends Handlers
+    const addTrustedFriend = () => {
+      if (newFriend.name.trim() && newFriend.number.trim()) {
+        setTrustedFriends(prev => [...prev, newFriend]);
+        setNewFriend({ name: '', number: '' });
+        setSuccess('Trusted friend added!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Please enter both name and number for your trusted friend.');
+      }
+    };
+
+    const removeTrustedFriend = (indexToRemove) => {
+      setTrustedFriends(prev => prev.filter((_, index) => index !== indexToRemove));
+      setSuccess('Trusted friend removed!');
+      setTimeout(() => setSuccess(''), 3000);
+    };
+
+    const alertTrustedFriends = () => {
+      if (trustedFriends.length === 0) {
+        setError('Please add at least one trusted friend before alerting.');
+        return;
+      }
+      setLoading(true);
+      setError('');
+      setSuccess('');
+      // In a real app, this would trigger a backend API call to send SMS/email
+      console.log('Simulating alert to trusted friends:', trustedFriends);
+      setSuccess('Alert sent to trusted friends (simulated)!');
+      setTimeout(() => {
+        setSuccess('');
+        setLoading(false);
+      }, 3000);
+    };
+
+    // Breathing Exercise (simple example)
+    const startBreathingExercise = () => {
+      setSuccess('Starting 4-7-8 Breathing Exercise: Inhale 4s, Hold 7s, Exhale 8s. Repeat!');
+      setTimeout(() => setSuccess(''), 5000);
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Emergency Support</h1>
+          <p className="text-gray-600">Immediate help and crucial resources when you need them most.</p>
+        </div>
+
+        {renderMessages()}
+
+        {/* Government Helpline Numbers */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center text-red-700">
+            <PhoneCall className="mr-2" size={20} />
+            Govt. Helpline Numbers
+          </h2>
+          <div className="space-y-3">
+            <div>
+              <h3 className="font-semibold text-lg mb-2">📞 India:</h3>
+              <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <li><a href="tel:+919152987821" className="text-blue-600 hover:underline">iCall (TISS): +91 9152987821</a></li>
+                <li><a href="tel:18602662345" className="text-blue-600 hover:underline">Vandrevala Foundation: 1860 2662 345</a> or <a href="tel:9999666555" className="text-blue-600 hover:underline">9999 666 555</a></li>
+                <li><a href="tel:+919820466726" className="text-blue-600 hover:underline">AASRA: +91 9820466726</a> (24×7)</li>
+                <li><a href="tel:+911123389090" className="text-blue-600 hover:underline">Sumaitri (Delhi): +91 11 23389090</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg mb-2">🌐 Global:</h3>
+              <ul className="list-disc list-inside space-y-1 text-gray-700">
+                <li><a href="tel:988" className="text-blue-600 hover:underline">Lifeline (US): 988</a> or <a href="tel:18002738255" className="text-blue-600 hover:underline">1-800-273-TALK (8255)</a></li>
+                <li>Crisis Text Line (US/UK/CA): Text HOME to 741741</li>
+                <li><a href="tel:116123" className="text-blue-600 hover:underline">Samaritans (UK): 116 123</a></li>
+                <li><a href="tel:131114" className="text-blue-600 hover:underline">Lifeline Australia: 13 11 14</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Book Counselling */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center text-indigo-700">
+            <BookOpen className="mr-2" size={20} />
+            Book Counselling
+          </h2>
+          <p className="text-gray-600 mb-4">Find professional support. Your current points: <span className="font-bold text-blue-600">{userPoints}</span></p>
+          <div className="space-y-4">
+            {counsellors.map(counselor => (
+              <div key={counselor.id} className="border border-gray-200 rounded-lg p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                <div>
+                  <h3 className="font-semibold text-gray-800">{counselor.name}</h3>
+                  <p className="text-sm text-gray-600">{counselor.specialization}</p>
+                  <p className="text-sm text-gray-600">Contact: {counselor.contact} | {counselor.email}</p>
+                  <p className="text-sm text-gray-700">Fee: ${counselor.fee} / session</p>
+                </div>
+                <div className="mt-2 sm:mt-0">
+                  {counselor.firstFree && (
+                    <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full mr-2">
+                      First Session FREE!
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (counselor.firstFree || userPoints >= counselor.fee / 10) { // Example: 10 points per $100 fee
+                        setSuccess(`Booking session with ${counselor.name}. You will be contacted shortly.`);
+                        if (!counselor.firstFree) {
+                          setUserPoints(prev => prev - (counselor.fee / 10)); // Deduct points
+                        }
+                        setTimeout(() => setSuccess(''), 5000);
+                      } else {
+                        setError('Not enough points to book this session.');
+                      }
+                    }}
+                    className={`${counselor.firstFree || userPoints >= counselor.fee / 10 ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-gray-400 cursor-not-allowed'} text-white px-3 py-1 rounded-lg text-sm transition-colors`}
+                    disabled={!counselor.firstFree && userPoints < counselor.fee / 10}
+                  >
+                    {counselor.firstFree ? 'Book Free Session' : `Book (${counselor.fee / 10} pts)`}
+                  </button>
+                </div>
+              </div>
+            ))}
+            <p className="text-sm text-gray-500">
+              * The first counselling session might be free with select therapists. Subsequent sessions can be booked using earned points (10 points per $100 equivalent).
+            </p>
+          </div>
+        </div>
+
+        {/* Crisis Resources */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center text-amber-700">
+            <Zap className="mr-2" size={20} />
+            Crisis Resources
+          </h2>
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg mb-2">Instant Exercises:</h3>
+            <button
+              onClick={startBreathingExercise}
+              className={`w-full bg-orange-500 text-white py-2 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center`}
+            >
+              <RefreshCw className="mr-2" size={18} />
+              Start Breathing Exercise (4-7-8)
+            </button>
+            <p className="text-gray-600 text-sm">
+              * Engaging in simple breathing exercises can help calm your nervous system during moments of distress.
+            </p>
+
+            <h3 className="font-semibold text-lg mt-4 mb-2">Awareness & Prevention:</h3>
+            <ul className="list-disc list-inside space-y-1 text-gray-700">
+              <li>WHO Suicide Prevention: <a href="https://www.who.int/health-topics/suicide" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Visit Site</a></li>
+              <li>Befrienders Worldwide: <a href="https://www.befrienders.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Visit Site</a></li>
+              <li>American Foundation for Suicide Prevention (AFSP): <a href="https://afsp.org" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Visit Site</a></li>
+            </ul>
+            <p className="text-sm text-gray-500">
+              * These external resources provide comprehensive information and support for suicide prevention and mental health awareness.
+            </p>
+          </div>
+        </div>
+
+        {/* Contact Trusted Friends */}
+        <div className="bg-white rounded-lg shadow-sm border p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center text-teal-700">
+            <Users className="mr-2" size={20} />
+            Contact Trusted Friends
+          </h2>
+          <p className="text-gray-600 mb-4">Alert a list of trusted friends during a crisis.</p>
+
+          <div className="space-y-3 mb-4">
+            {trustedFriends.length === 0 ? (
+              <p className="text-gray-500 italic">No trusted friends added yet.</p>
+            ) : (
+              trustedFriends.map((friend, index) => (
+                <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200">
+                  <div>
+                    <p className="font-medium text-gray-800">{friend.name}</p>
+                    <p className="text-sm text-gray-600">{friend.number}</p>
+                  </div>
+                  <button
+                    onClick={() => removeTrustedFriend(index)}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg mb-2">Add New Friend:</h3>
+            <div>
+              <label htmlFor="friendName" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input
+                type="text"
+                id="friendName"
+                value={newFriend.name}
+                onChange={(e) => setNewFriend({ ...newFriend, name: e.target.value })}
+                placeholder="Friend's Name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="friendNumber" className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+              <input
+                type="tel" // Use type="tel" for phone numbers
+                id="friendNumber"
+                value={newFriend.number}
+                onChange={(e) => setNewFriend({ ...newFriend, number: e.target.value })}
+                placeholder="e.g., +919876543210"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              onClick={addTrustedFriend}
+              className={`w-full ${colors.primary} text-white py-2 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center`}
+            >
+              <Plus className="mr-2" size={18} />
+              Add Friend
+            </button>
+
+            <button
+              onClick={alertTrustedFriends}
+              disabled={loading || trustedFriends.length === 0}
+              className={`w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center ${trustedFriends.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin mr-2" size={20} />
+              ) : (
+                <AlertTriangle className="mr-2" size={20} />
+              )}
+              {loading ? 'Sending Alert...' : 'Send Crisis Alert'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+
   // Main render
   return (
     <div className={`min-h-screen ${colors.background} mood-transition pb-20`}>
@@ -1236,15 +1493,16 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
             {currentPage === 'quiz' && renderQuiz()}
             {currentPage === 'copilot' && renderCopilot()}
             {currentPage === 'chat' && renderChat()}
+            {currentPage === 'emergency' && renderEmergency()} {/* NEW: Render Emergency Page */}
           </>
         ) : (
           renderAuth()
         )}
       </div>
-      
+
       {isAuthenticated && renderNavigation()}
     </div>
   );
 }
 
-export default App; 
+export default App;
