@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Import useCallback
 import {
   Home,
   Heart,
@@ -18,10 +18,10 @@ import {
   UserPlus,
   Eye,
   EyeOff,
-  PhoneCall, 
-  BookOpen, 
-  Zap, 
-  Users 
+  PhoneCall,
+  BookOpen,
+  Zap,
+  Users
 } from 'lucide-react';
 
 // API base URL - adjust for your backend
@@ -89,7 +89,6 @@ function App() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizType, setQuizType] = useState(null); // 'mood' or 'dass21'
 
-
   // Copilot state
   const [copilotPrompt, setCopilotPrompt] = useState('');
   const [copilotResponse, setCopilotResponse] = useState('');
@@ -110,22 +109,93 @@ function App() {
   ]);
   const [userPoints, setUserPoints] = useState(500); // Dummy points
 
-  // Check authentication on component mount
-  useEffect(() => {
-    checkAuth();
+  // --- Utility functions wrapped in useCallback for stability ---
+
+  // clearMessages: Does not depend on any changing state/props, only state setters
+  const clearMessages = useCallback(() => {
+    setError('');
+    setSuccess('');
   }, []);
 
-  // Load recent check-ins when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadRecentCheckins();
-      // Potentially load trusted friends from backend here too
-      // loadTrustedFriends();
-    }
-  }, [isAuthenticated]);
+  // logout: Does not depend on any changing state/props, only state setters
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('mindbridge_token');
+    setCurrentPage('home');
+    setSuccess('Logged out successfully!');
+    setTimeout(() => setSuccess(''), 3000);
+  }, []); // Correct: Empty array means it's stable and never re-created
 
-  // Check if user is authenticated
-  const checkAuth = async () => {
+  // updateMoodFromCheckin: Does not depend on any changing state/props, only state setters
+  const updateMoodFromCheckin = useCallback((checkin) => {
+    const mood = checkin.mood.toLowerCase();
+    const stress = checkin.stress_level;
+
+    if (stress >= 8) {
+      setCurrentMood('stressed');
+    } else if (mood.includes('happy') || mood.includes('great') || mood.includes('good')) {
+      setCurrentMood('happy');
+    } else if (mood.includes('sad') || mood.includes('down') || mood.includes('bad')) {
+      setCurrentMood('sad');
+    } else if (stress <= 3) {
+      setCurrentMood('calm');
+    } else {
+      setCurrentMood('neutral');
+    }
+  }, []);
+
+  // apiCall: Depends on 'token' and calls 'logout'
+  const apiCall = useCallback(async (endpoint, options = {}) => {
+    try {
+      const headers = {
+        'Content-Type': 'application/json',
+        ...options.headers
+      };
+
+      if (token && !headers.Authorization) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: options.method || 'GET',
+        headers: headers,
+        body: options.body || null
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout(); // Now 'logout' is a stable dependency
+          throw new Error('Session expired. Please login again.');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('API call failed:', error);
+      throw error;
+    }
+  }, [token, logout]); // Correct: Included 'logout' as a dependency
+
+  // loadRecentCheckins: Depends on 'apiCall' and 'updateMoodFromCheckin'
+  const loadRecentCheckins = useCallback(async () => {
+    try {
+      const response = await apiCall('/checkin');
+      if (response.success) {
+        setRecentCheckins(response.checkins);
+        if (response.checkins.length > 0) {
+          updateMoodFromCheckin(response.checkins[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load check-ins:', error);
+    }
+  }, [apiCall, updateMoodFromCheckin]); // Correct: Both dependencies are now stable
+
+  // checkAuth: Depends on 'apiCall' and 'logout'
+  const checkAuth = useCallback(async () => {
     const storedToken = localStorage.getItem('mindbridge_token');
     if (storedToken) {
       setToken(storedToken);
@@ -137,17 +207,73 @@ function App() {
           setUser(response.user);
           setIsAuthenticated(true);
         } else {
-          // Token is invalid, remove it
           localStorage.removeItem('mindbridge_token');
           setToken(null);
         }
       } catch (error) {
-        // Token is invalid, remove it
         localStorage.removeItem('mindbridge_token');
         setToken(null);
       }
     }
-  };
+  }, [apiCall]); // Correct: Both dependencies are now stable
+
+  // handleDassSubmit: Depends on 'apiCall', 'dassAnswers', and 'dassQuestions.length'
+  const handleDassSubmit = useCallback(async () => {
+    console.log('Submitting DASS-21 answers:', dassAnswers);
+    try {
+      const response = await apiCall('/dass21/submit', {
+        method: 'POST',
+        body: JSON.stringify({ answers: dassAnswers })
+      });
+
+      if (response.success) {
+        const scores = response.scores;
+        const highest = Object.entries(scores).reduce((max, entry) =>
+          entry[1] > max[1] ? entry : max
+        );
+        const predictedMood = highest[0];
+
+        const summary = `
+Predicted Mood: ${predictedMood}
+
+Depression: ${response.severity.Depression} (${scores.Depression})
+Anxiety: ${response.severity.Anxiety} (${scores.Anxiety})
+Stress: ${response.severity.Stress} (${scores.Stress})
+Based on your overall responses, it seems that ${predictedMood} is currently the most prominent challenge you're facing.
+Don't worry - you're not alone, and we're here to help you through it ☺️.
+      `.trim();
+
+        setQuizInsight(summary);
+        setCurrentDassIndex(dassQuestions.length);
+      } else {
+        setError(response.error || 'Failed to evaluate DASS-21');
+      }
+    } catch (err) {
+      setError('Something went wrong submitting DASS-21');
+    }
+  }, [apiCall, dassAnswers, dassQuestions.length]);
+
+  // --- Effects (now correctly ordered and with stable dependencies) ---
+
+  // Check authentication on component mount
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Load recent check-ins when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadRecentCheckins();
+    }
+  }, [isAuthenticated, loadRecentCheckins]);
+
+  // Trigger DASS-21 submission when all answers are collected
+  useEffect(() => {
+    if (quizType === 'dass' && Object.keys(dassAnswers).length === dassQuestions.length) { // Ensure all questions are answered
+      handleDassSubmit();
+    }
+  }, [dassAnswers, handleDassSubmit, quizType, dassQuestions.length]); // Added dassQuestions.length as dependency
+
 
   // Login function
   const login = async () => {
@@ -185,14 +311,6 @@ function App() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (quizType === 'dass' && Object.keys(dassAnswers).length === 21) {
-      handleDassSubmit();
-    }
-  }, [dassAnswers]);
-
-
 
   // Register function
   const register = async () => {
@@ -242,16 +360,6 @@ function App() {
     }
   };
 
-  // Logout function
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('mindbridge_token');
-    setCurrentPage('home');
-    setSuccess('Logged out successfully!');
-    setTimeout(() => setSuccess(''), 3000);
-  };
 
   // Determine adaptive UI colors based on current mood
   const getMoodColors = () => {
@@ -296,76 +404,6 @@ function App() {
 
   const colors = getMoodColors();
 
-  // API helper functions with JWT support
-  const apiCall = async (endpoint, options = {}) => {
-    try {
-      const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers
-      };
-
-      // Add JWT token if available and not already provided
-      if (token && !headers.Authorization) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: options.method || 'GET',
-        headers: headers, // ✅ Use the constructed headers here
-        body: options.body || null
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          logout(); // logout() should be defined in this scope
-          throw new Error('Session expired. Please login again.');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('API call failed:', error);
-      throw error;
-    }
-  };
-
-
-  // Load recent check-ins from backend
-  const loadRecentCheckins = async () => {
-    try {
-      const response = await apiCall('/checkin');
-      if (response.success) {
-        setRecentCheckins(response.checkins);
-
-        // Update current mood based on most recent check-in
-        if (response.checkins.length > 0) {
-          const latestCheckin = response.checkins[0];
-          updateMoodFromCheckin(latestCheckin);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load check-ins:', error);
-    }
-  };
-
-  // Update UI mood based on check-in data
-  const updateMoodFromCheckin = (checkin) => {
-    const mood = checkin.mood.toLowerCase();
-    const stress = checkin.stress_level;
-
-    if (stress >= 8) {
-      setCurrentMood('stressed');
-    } else if (mood.includes('happy') || mood.includes('great') || mood.includes('good')) {
-      setCurrentMood('happy');
-    } else if (mood.includes('sad') || mood.includes('down') || mood.includes('bad')) {
-      setCurrentMood('sad');
-    } else if (stress <= 3) {
-      setCurrentMood('calm');
-    } else {
-      setCurrentMood('neutral');
-    }
-  };
 
   // Submit daily check-in
   const submitCheckin = async () => {
@@ -456,48 +494,6 @@ function App() {
     }
   };
 
-  const handleDassSubmit = async () => {
-    console.log('Submitting DASS-21 answers:', dassAnswers); // ✅ Debug log
-    try {
-      const response = await apiCall('/dass21/submit', {
-        method: 'POST',
-        body: JSON.stringify({ answers: dassAnswers })  // ✅ Wrap in { answers: ... }
-      });
-
-      if (response.success) {
-        const scores = response.scores;
-
-        // Determine the mood with the highest score
-        const highest = Object.entries(scores).reduce((max, entry) =>
-          entry[1] > max[1] ? entry : max
-        ); // highest = [key, value]
-
-        const predictedMood = highest[0];
-        const predictedScore = highest[1];
-
-        const summary = `
-Predicted Mood: ${predictedMood}
-
-Depression: ${response.severity.Depression} (${scores.Depression})
-Anxiety: ${response.severity.Anxiety} (${scores.Anxiety})
-Stress: ${response.severity.Stress} (${scores.Stress})
-Based on your overall responses, it seems that ${predictedMood} is currently the most prominent challenge you're facing.
-Don't worry - you're not alone, and we're here to help you through it ☺️.
-      `.trim();
-
-        setQuizInsight(summary);
-        setCurrentDassIndex(dassQuestions.length); // ✅ Force show summary screen
-      }
-      else {
-        setError(response.error || 'Failed to evaluate DASS-21');
-      }
-    } catch (err) {
-      setError('Something went wrong submitting DASS-21');
-    }
-
-  };
-
-
 
   // Get grounding exercise from copilot
   const getGroundingExercise = async () => {
@@ -567,12 +563,6 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
     }
   };
 
-  // Clear messages
-  const clearMessages = () => {
-    setError('');
-    setSuccess('');
-  };
-
   // Navigation items
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -580,7 +570,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
     { id: 'quiz', label: 'Quiz', icon: Brain },
     { id: 'copilot', label: 'Copilot', icon: TrendingUp },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
-    { id: 'emergency', label: 'Emergency', icon: PhoneCall } // NEW: Emergency
+    { id: 'emergency', label: 'Emergency', icon: PhoneCall }
   ];
 
   // Render authentication page
@@ -1328,7 +1318,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
             <BookOpen className="mr-2" size={20} />
             Book Counselling
           </h2>
-          <p className="text-gray-600 mb-4">Find professional support. Your current points: <span className="font-bold text-blue-600">{userPoints}</span></p>
+          <p className="text-gray-600 mb-4">Your current points: <span className="font-bold text-blue-600">{userPoints}</span></p>
           <div className="space-y-4">
             {counsellors.map(counselor => (
               <div key={counselor.id} className="border border-gray-200 rounded-lg p-3 flex flex-col sm:flex-row justify-between items-start sm:items-center">
@@ -1446,7 +1436,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
             <div>
               <label htmlFor="friendNumber" className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
               <input
-                type="tel" // Use type="tel" for phone numbers
+                type="tel"
                 id="friendNumber"
                 value={newFriend.number}
                 onChange={(e) => setNewFriend({ ...newFriend, number: e.target.value })}
@@ -1493,7 +1483,7 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
             {currentPage === 'quiz' && renderQuiz()}
             {currentPage === 'copilot' && renderCopilot()}
             {currentPage === 'chat' && renderChat()}
-            {currentPage === 'emergency' && renderEmergency()} {/* NEW: Render Emergency Page */}
+            {currentPage === 'emergency' && renderEmergency()}
           </>
         ) : (
           renderAuth()
