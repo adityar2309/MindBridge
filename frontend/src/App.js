@@ -110,7 +110,15 @@ function App() {
   const [userPoints, setUserPoints] = useState(500); // Dummy points
 
   // --- Utility functions wrapped in useCallback for stability ---
-
+const speakText = (text) => {
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    window.speechSynthesis.speak(utterance);
+  } else {
+    console.warn("Text-to-speech not supported in this browser.");
+  }
+};
   // clearMessages: Does not depend on any changing state/props, only state setters
   const clearMessages = useCallback(() => {
     setError('');
@@ -461,6 +469,8 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
     }
   };
 
+// Speak assistant message aloud
+
 
   // Submit quiz answer
   const submitQuizAnswer = async () => {
@@ -524,44 +534,53 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
   };
 
   // Send chat message
-  const sendChatMessage = async () => {
-    if (!currentMessage.trim()) return;
+ const sendChatMessage = async () => {
+  if (!currentMessage.trim()) return;
 
-    const userMessage = {
-      id: Date.now(),
-      text: currentMessage,
-      sender: 'user',
-      timestamp: new Date().toLocaleTimeString()
-    };
-
-    setChatMessages(prev => [...prev, userMessage]);
-    const messageToSend = currentMessage;
-    setCurrentMessage('');
-    setLoading(true);
-
-    try {
-      const response = await apiCall('/chat', {
-        method: 'POST',
-        body: JSON.stringify({ message: messageToSend })
-      });
-
-      if (response.success) {
-        const assistantMessage = {
-          id: Date.now() + 1,
-          text: response.response,
-          sender: 'assistant',
-          timestamp: new Date().toLocaleTimeString()
-        };
-        setChatMessages(prev => [...prev, assistantMessage]);
-      } else {
-        setError(response.error || 'Failed to send message');
-      }
-    } catch (error) {
-      setError('Failed to send message. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const userMessage = {
+    id: Date.now(),
+    text: currentMessage,
+    sender: 'user',
+    timestamp: new Date().toLocaleTimeString()
   };
+
+  setChatMessages(prev => [...prev, userMessage]);
+  const messageToSend = currentMessage;
+  setCurrentMessage('');
+  setLoading(true);
+
+  try {
+    const response = await apiCall('/chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: messageToSend })
+    });
+
+    console.log('Chat API raw response:', response);
+
+    if (response.success) {
+      const assistantMessage = {
+        id: Date.now() + 1,
+        text: response.response,
+        sender: 'assistant',
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setChatMessages(prev => [...prev, assistantMessage]);
+        speakText(response.response);
+    } else {
+      console.warn('API call failed: ', response);
+      setError(response.error || 'Failed to send message');
+    }
+  } catch (error) {
+    console.error('Chat API error:', error);
+    setError('Failed to send message. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+  // Add this helper at top-level or above renderChat()
+
+
+};
+
 
   // Navigation items
   const navItems = [
@@ -1165,6 +1184,30 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
       )}
     </div>
   );
+  const startListening = () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Your browser does not support Speech Recognition.");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'en-US';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    console.log("Voice input:", transcript);
+    setCurrentMessage(transcript);
+  };
+
+  recognition.onerror = (event) => {
+    console.error("Speech recognition error:", event.error);
+  };
+
+  recognition.start();
+};
 
   // Render chat page
   const renderChat = () => (
@@ -1221,12 +1264,20 @@ Don't worry - you're not alone, and we're here to help you through it ☺️.
             disabled={loading || !currentMessage.trim()}
             className={`${colors.primary} text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center`}
           >
+          
+
             {loading ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
               <Send size={20} />
             )}
           </button>
+          <button
+  onClick={startListening}
+  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
+>
+  🎤
+</button>
         </div>
       </div>
     </div>

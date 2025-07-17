@@ -12,9 +12,75 @@ import os
 import bcrypt
 from datetime import datetime, timedelta
 from werkzeug.exceptions import BadRequest
+import os
+import google.generativeai as genai
+
+genai.configure(api_key="AIzaSyANOdww8r2kz76R1IqDAahAGxHDxxNbZvs")
+
+from sentence_transformers import SentenceTransformer
+import chromadb
+
+# Load at startup
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+
+client = chromadb.PersistentClient(path="vector_store")
+collection = client.get_or_create_collection(name="mental_health_docs")
+DB_PATH = r'C:\Users\DELL\MindBridge\backend\mindbridge.db'
+
+def retrieve_relevant_knowledge(query, k=3):
+    embedding = model.encode(query).tolist()
+    results = collection.query(query_embeddings=[embedding], n_results=k)
+    docs = results["documents"][0]
+    return "\n".join(docs)
+
+
+import sqlite3
+from datetime import datetime, timedelta
+import datetime
+
+def fetch_user_context(user_id):
+    conn = sqlite3.connect("mindbridge.db")
+    cursor = conn.cursor()
+
+    # If your table has `timestamp`, filter by last 3 days
+    three_days_ago = (datetime.datetime.now() - datetime.timedelta(days=3)).isoformat()
+
+    try:
+        cursor.execute("""
+            SELECT role, message FROM chat_logs 
+            WHERE user_id = ? AND timestamp >= ? 
+            ORDER BY timestamp ASC
+        """, (user_id, three_days_ago))
+    except sqlite3.OperationalError:
+        # fallback if no timestamp column
+        cursor.execute("""
+            SELECT role, message FROM chat_logs 
+            WHERE user_id = ? 
+            ORDER BY id ASC
+        """, (user_id,))
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Reconstruct the full conversation
+    context = ""
+    for role, msg in rows:
+        context += f"{role.capitalize()}: {msg}\n"
+    return context
+
+def gemini_chat(prompt):
+    try:
+        model = genai.GenerativeModel('gemini-2.5-pro')
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        print("Gemini API error:", e)
+        return "Sorry, something went wrong while getting a response."
+
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, supports_credentials=True)  # Enable CORS for all routes
 @app.route("/")
 def home():
     return "Welcome to MindBridge API!"
@@ -277,6 +343,10 @@ def login():
     Returns:
         JSON response with access token and user info
     """
+    if request.method == 'OPTIONS':
+        # ✅ Preflight request — send empty OK response
+        return '', 204
+        
     try:
         data = request.get_json()
         
@@ -759,94 +829,73 @@ def get_grounding_exercise():
 
 @app.route('/api/chat', methods=['POST'])
 @jwt_required()
-def chat_response():
-    """
-    Generate a conversational response based on the user's message.
-    
-    Expected JSON payload:
-        {
-            "message": "User's message text"
-        }
-    
-    Returns:
-        JSON response with an appropriate conversational reply
-    """
+def chat():
     try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({
-                'success': False,
-                'error': 'No data provided'
-            }), 400
-        
-        message = data.get('message', '').lower()
-        
-        if not message:
-            return jsonify({
-                'success': False,
-                'error': 'Message is required'
-            }), 400
-        
-        # Generate response based on message content
-        response = generate_chat_response(message)
-        
-        return jsonify({
-            'success': True,
-            'response': response
-        })
-    
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Failed to generate chat response: {str(e)}'
-        }), 500
+        user_id = get_jwt_identity()
+        print(f"Received message from user_id: {user_id}")
 
-def generate_chat_response(message):
-    """
-    Generate a rule-based conversational response.
-    
-    Args:
-        message (str): User's message in lowercase
-    
-    Returns:
-        str: Appropriate response based on message content
-    """
-    # Sad/down responses
-    if any(word in message for word in ['sad', 'down', 'depressed', 'upset', 'hurt']):
-        return "I'm sorry to hear that you're feeling this way. It's completely normal to have difficult emotions. Remember to be kind to yourself during tough times. Is there anything specific that's been weighing on you?"
-    
-    # Stressed/anxious responses
-    elif any(word in message for word in ['stressed', 'anxious', 'worried', 'overwhelmed', 'panic']):
-        return "Stress and anxiety can be really tough to deal with. Try taking a few deep breaths - in through your nose for 4 counts, hold for 4, and out through your mouth for 6. Remember that this feeling will pass. What's been causing you the most stress lately?"
-    
-    # Happy/positive responses
-    elif any(word in message for word in ['happy', 'good', 'great', 'excited', 'joy']):
-        return "I'm so glad to hear you're feeling positive! It's wonderful when we can appreciate the good moments. What's been going well for you recently?"
-    
-    # Tired/exhausted responses
-    elif any(word in message for word in ['tired', 'exhausted', 'sleepy', 'drained']):
-        return "It sounds like you might need some rest. Make sure you're getting enough sleep and taking breaks when you need them. Self-care isn't selfish - it's necessary. Have you been able to get enough rest lately?"
-    
-    # Angry/frustrated responses
-    elif any(word in message for word in ['angry', 'mad', 'frustrated', 'annoyed']):
-        return "Anger and frustration are valid emotions. It's okay to feel this way. Try to take some time to process these feelings safely. Deep breathing or physical activity can sometimes help. What's been frustrating you?"
-    
-    # Lonely responses
-    elif any(word in message for word in ['lonely', 'alone', 'isolated']):
-        return "Feeling lonely can be really difficult. Remember that you're not truly alone, even when it feels that way. Consider reaching out to someone you trust or engaging in activities that connect you with others. I'm here to listen too."
-    
-    # Help/support requests
-    elif any(word in message for word in ['help', 'support', 'advice', 'guidance']):
-        return "I'm here to support you. While I can provide general wellness tips and a listening ear, remember that professional help is available if you need more support. What kind of help are you looking for today?"
-    
-    # Gratitude/thanks
-    elif any(word in message for word in ['thank', 'grateful', 'appreciate']):
-        return "You're very welcome! I'm glad I could be helpful. Practicing gratitude, like you're doing right now, is actually great for mental health. Keep being kind to yourself."
-    
-    # Default response
-    else:
-        return "Thank you for sharing that with me. I'm here to listen and provide support. How are you feeling right now? Is there anything specific I can help you with today?"
+        data = request.get_json()
+        message = data.get("message")
+        print(f"User message: {message}")
+
+        if not message:
+            return jsonify({"error": "No message provided"}), 400
+
+        # Connect to DB
+        conn = sqlite3.connect("mindbridge.db")
+        cursor = conn.cursor()
+
+        # Log user message
+        cursor.execute(
+            "INSERT INTO chat_logs (user_id, role, message) VALUES (?, ?, ?)",
+            (user_id, "user", message)
+        )
+        conn.commit()
+
+        # Step 1: Fetch last 3 days' context
+        print("Fetching user context...")
+        user_context = fetch_user_context(user_id)
+
+        # Step 2: Retrieve relevant docs from Chroma
+        print("Retrieving relevant docs...")
+        relevant_docs = retrieve_relevant_knowledge(message)
+        doc_text = "\n".join([doc.page_content for doc in relevant_docs]) if relevant_docs else ""
+
+        # Step 3: Build prompt
+        prompt = f"""
+        You are a compassionate mental health assistant.
+
+        User's recent emotional history:
+        {user_context}
+
+        Helpful background information:
+        {doc_text}
+
+        Now respond to their message:
+        "{message}"
+        """
+        print("Calling Gemini API...")
+        gemini_response = gemini_chat(prompt)
+
+        if not gemini_response:
+            gemini_response = "Sorry, I'm having trouble understanding. Please try again."
+
+        # Step 4: Log assistant response
+        cursor.execute(
+            "INSERT INTO chat_logs (user_id, role, message) VALUES (?, ?, ?)",
+            (user_id, "assistant", gemini_response)
+        )
+        conn.commit()
+        conn.close()
+
+        print("Returning response to frontend.")
+        return jsonify({"success": True, "response": gemini_response})
+
+
+    except Exception as e:
+        print(f"❌ Error in /api/chat: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+
 
 @app.route('/api/health', methods=['GET'])
 def health_check():

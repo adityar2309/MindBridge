@@ -3,3 +3,7 @@ Flask-CORS==4.0.0
 Flask-JWT-Extended==4.5.3
 bcrypt==4.1.2
 Werkzeug==2.3.7 
+google
+google-generativeai
+chromadb
+sentence_transformers
